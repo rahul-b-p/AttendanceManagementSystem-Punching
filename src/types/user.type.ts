@@ -14,6 +14,11 @@ export type UserInsertArgs = UserBase & {
 
 export type IUserData = Omit<IUser, 'password' | 'refreshToken'>;
 
-export type UserUpdateBody = Partial<UserInsertArgs> & { refreshToken?: string };
+export type UserUpdateBody = {
+    $set?: Partial<IUser>;
+    $unset?: {
+        refreshToken?: 1;
+    };
+};
 
 export type UserAuthBody = UserBase;

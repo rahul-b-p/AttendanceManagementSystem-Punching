@@ -4,7 +4,7 @@ import { AuthenticationError, InternalServerError, NotFoundError } from "../erro
 import { comparePassword, sendCustomResponse } from "../utils";
 import { signAccessToken, signRefreshToken } from "../jwt";
 import { UserAuthBody } from "../types";
-import { findUserByEmail, findUserById, updateUserById } from "../services";
+import { blacklistToken, findUserByEmail, findUserById, updateUserById } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 
 
@@ -24,7 +24,8 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
-        await updateUserById(existingUser._id.toString(), { refreshToken: RefreshToken });
+        const updateRefreshToken = { $set: { refreshToken: RefreshToken } };
+        await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
         res.statusMessage = "Login Successful";
         res.status(200).json(await sendCustomResponse('Login Successful', { AccessToken, RefreshToken }));
@@ -33,7 +34,6 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
         next(new InternalServerError())
     }
 }
-
 
 export const refresh = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
     try {
@@ -46,9 +46,34 @@ export const refresh = async (req: customRequestWithPayload, res: Response, next
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
-        await updateUserById(existingUser._id.toString(), { refreshToken: RefreshToken });
+        const updateRefreshToken = { $set: { refreshToken: RefreshToken } };
+        await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
         res.status(200).json(await sendCustomResponse('Token refreshed successfully', { AccessToken, RefreshToken }));
+    } catch (error) {
+        logger.error(error);
+        next(new InternalServerError('Something went wrong'));
+    }
+}
+
+export const logout = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
+    try {
+        const id = req.payload?.id;
+        if (!id) throw new Error('The user ID was not added to the payload by the authentication middleware.');
+
+        const AccessToken = req.headers.authorization?.split(' ')[1];
+        if (!AccessToken) throw new Error('AccessToken missed from header after auth middleware');
+
+        const existingUser = await findUserById(id);
+        if (!existingUser) return next(new NotFoundError());
+
+        await blacklistToken(AccessToken);
+        if (existingUser.refreshToken) {
+            await blacklistToken(existingUser.refreshToken);
+            await updateUserById(existingUser._id.toString(), { $unset: { refreshToken: 1 } });
+        }
+
+        res.status(200).json(await sendCustomResponse('Logged out successfully.'));
     } catch (error) {
         logger.error(error);
         next(new InternalServerError('Something went wrong'));
