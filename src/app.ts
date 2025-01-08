@@ -1,11 +1,12 @@
-import { config } from 'dotenv';
 import express from 'express';
 import { logger } from './utils/logger';
+import './config/envConfig';
+import { connectDB } from './database';
 
-config();
 
 const app = express();
 
+connectDB();
 
 
 
