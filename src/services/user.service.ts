@@ -60,10 +60,19 @@ export const updateUserById = async (_id: string, userToUpdate: UserUpdateBody):
     }
 };
 
-export const checkRefreshTokenExistsById = async (id: string, refreshToken: string): Promise<boolean> => {
+export const checkRefreshTokenExistsById = async (_id: string, refreshToken: string): Promise<boolean> => {
     try {
-        const UserExists = await User.exists({ id, refreshToken });
+        const UserExists = await User.exists({ _id, refreshToken });
         return UserExists !== null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const findUserById = async (_id: string): Promise<IUser | null> => {
+    try {
+        return await User.findById(_id).lean();
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

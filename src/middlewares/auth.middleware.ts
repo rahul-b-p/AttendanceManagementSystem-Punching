@@ -4,7 +4,7 @@ import { logger } from "../utils";
 import { customRequestWithPayload, TokenPayload } from "../interfaces";
 import { isValidObjectId } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
-import { checkRefreshTokenExistsById, isTokenBlacklisted } from "../services";
+import { blacklistToken, checkRefreshTokenExistsById, isTokenBlacklisted } from "../services";
 
 
 
@@ -35,12 +35,13 @@ export const refreshTokenAuth = async (req: customRequestWithPayload, res: Respo
         const isJwtBlacklisted = await isTokenBlacklisted(RefreshToken);
         if (isJwtBlacklisted) return next(new AuthenticationError());
 
-        const tokenPayload = await verifyAccessToken(RefreshToken);
+        const tokenPayload = await verifyRefreshToken(RefreshToken);
         if (!tokenPayload || !isValidObjectId(tokenPayload.id)) return next(new AuthenticationError());
 
         const isRefreshTokenExists = await checkRefreshTokenExistsById(tokenPayload.id, RefreshToken);
         if (!isRefreshTokenExists) return next(new AuthenticationError());
 
+        await blacklistToken(RefreshToken);
         req.payload = { id: tokenPayload.id };
         next();
     } catch (error: any) {
