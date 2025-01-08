@@ -1,11 +1,11 @@
 import { Roles } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
-import { IUserData, UserInsertArgs } from "../types";
+import { IUserData, UserInsertArgs, UserUpdateBody } from "../types";
 import { logger } from "../utils";
 
 
-export const checkAdminExists = async () => {
+export const checkAdminExists = async (): Promise<boolean> => {
     try {
         const adminExists = await User.exists({ role: Roles.admin });
         return adminExists !== null;
@@ -37,3 +37,25 @@ export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
         throw new Error(error.message);
     }
 }
+
+export const findUserByEmail = async (email: string): Promise<IUser | null> => {
+    try {
+        return await User.findOne({ email })
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const updateUserById = async (_id: string, userToUpdate: UserUpdateBody): Promise<IUserData | null> => {
+    try {
+        const updatedUser = await User.findByIdAndUpdate(_id, userToUpdate, { new: true });
+        if (!updatedUser) return null;
+
+        const { password, refreshToken, ...userWithoutSensitiveData } = updatedUser.toObject();
+        return userWithoutSensitiveData as IUserData;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+};
