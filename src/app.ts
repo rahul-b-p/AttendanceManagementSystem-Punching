@@ -1,5 +1,5 @@
 import express from 'express';
-import { logger } from './utils/logger';
+import { logger } from './utils';
 import './config/envConfig';
 import { connectDB } from './database';
 
@@ -14,6 +14,6 @@ connectDB();
 const port = process.env.PORT || 3000;
 
 
-app.listen(port,()=>{
+app.listen(port, () => {
     logger.info(`app running successfully at http://localhost:${port}`);
 })
