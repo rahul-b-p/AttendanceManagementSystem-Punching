@@ -1,5 +1,5 @@
 export { default as CustomError } from './customError';
-export { default as NotFoundError } from './forbiddenError';
+export { default as NotFoundError } from './notFountError';
 export { default as BadRequestError } from './badRequestError';
 export { default as InternalServerError } from './serverError';
 export { default as ConflictError } from './conflictError';

@@ -5,14 +5,15 @@ import { ZodError } from "zod";
 
 
 export const ErrorHandler: ErrorRequestHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
-    res.setHeader('Content-Type', 'application/json');
 
     if (err instanceof CustomError) {
         res.status(err.statusCode).json(err.serialize());
+        return;
     }
     
-    if (err instanceof ZodError) {
+    else if (err instanceof ZodError) {
         res.status(422).json({ message: 'Validation failed', errors: err });
+        return;
     }
     
     else {

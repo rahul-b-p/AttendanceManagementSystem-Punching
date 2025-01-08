@@ -13,3 +13,8 @@ export const createUserSchema = z.object({
     role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" })
 }).strict();
 
+
+export const userAuthSchema = z.object({
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
+    password: passwordSchema,
+}).strict('Invalid Request Body');

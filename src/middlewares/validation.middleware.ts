@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { ZodError, ZodSchema } from "zod";
 import { BadRequestError } from "../errors";
 import { InternalServerError } from "../errors";
-import { logger } from "../utils";
 
 
 
@@ -15,7 +14,6 @@ export const validateReqBody = (schema: ZodSchema) => {
         } catch (error) {
             if (error instanceof ZodError) {
                 error.errors.map((e) => {
-                    logger.error(error)
                     return next(new BadRequestError(`Bad Request, ${e.message}`));
                 })
             }

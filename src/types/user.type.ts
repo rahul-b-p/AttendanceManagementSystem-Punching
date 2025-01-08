@@ -1,13 +1,19 @@
 import { Roles } from "../enums";
 import { IUser } from "../interfaces";
 
-
-export type UserInsertArgs = {
-    username: string;
+type UserBase = {
     email: string;
-    phone:string;
     password: string;
-    role:Roles
+}
+
+export type UserInsertArgs = UserBase & {
+    username: string;
+    phone: string;
+    role: Roles
 };
 
-export type IUserData = Omit<IUser, 'password' |'refreshToken'>;
+export type IUserData = Omit<IUser, 'password' | 'refreshToken'>;
+
+export type UserUpdateBody = Partial<UserInsertArgs> & { refreshToken?: string };
+
+export type UserAuthBody = UserBase;
