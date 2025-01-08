@@ -1,5 +1,5 @@
 import express from 'express';
-import { logger } from './utils';
+import { createDefaultAdmin, logger } from './utils';
 import './config/envConfig';
 import { connectDB } from './database';
 
@@ -7,7 +7,7 @@ import { connectDB } from './database';
 const app = express();
 
 connectDB();
-
+createDefaultAdmin();
 
 
 
