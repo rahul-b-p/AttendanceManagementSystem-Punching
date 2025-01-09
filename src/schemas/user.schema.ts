@@ -25,3 +25,13 @@ export const userOtpValidationSchema = z.object({
     email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
     otp: otpSchema
 }).strict();
+
+export const forgotPasswordSchema = z.object({
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" })
+});
+
+export const resetPasswordSchema = z.object({
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
+    otp: otpSchema,
+    password: passwordSchema
+})

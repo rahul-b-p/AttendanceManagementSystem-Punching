@@ -35,3 +35,21 @@ export const sendOtpForInitialLogin = async (userId: string, email: string): Pro
         throw new Error('Failed to send OTP email');
     }
 };
+
+
+export const sendOtpForPasswordReset = async (userId: string, email: string): Promise<SentMessageInfo> => {
+    try {
+        const otp = await generateOtp(userId);
+        const emailOptions: EmailOptions = {
+            to: email,
+            subject: 'Password Reset Request',
+            text: `Your OTP (One-Time Password) is: ${otp}. This OTP will expire in 5 minutes.`,
+            html: `<p>Your OTP (One-Time Password) is: <strong>${otp}</strong>.</p>  <p>This OTP will expire in <strong>5 minutes</strong>.</p>`
+        };
+
+        return await sendEmail(emailOptions);
+    } catch (error) {
+        logger.error('Error sending OTP email:', error);
+        throw new Error('Failed to send OTP email');
+    }
+};

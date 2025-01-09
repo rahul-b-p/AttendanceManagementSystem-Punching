@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { logger } from "../utils";
-import { AuthenticationError, BadRequestError, InternalServerError, NotFoundError } from "../errors";
+import { hashPassword, logger } from "../utils";
+import { AuthenticationError, InternalServerError, NotFoundError } from "../errors";
 import { comparePassword, sendCustomResponse } from "../utils";
 import { signAccessToken, signRefreshToken } from "../jwt";
-import { UserAuthBody, UserUpdateBody } from "../types";
-import { blacklistToken, findUserByEmail, findUserById, sendOtpForInitialLogin, updateUserById, verifyOtp } from "../services";
+import { UserAuthBody, UserLoginOtpReq, UserPasswordResetReq, UserUpdateBody } from "../types";
+import { blacklistToken, findUserByEmail, findUserById, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 
 
@@ -93,7 +93,7 @@ export const logout = async (req: customRequestWithPayload, res: Response, next:
     }
 }
 
-export const firstLoginOtpValidation = async (req: Request<{}, any, { otp: string, email: string }>, res: Response, next: NextFunction) => {
+export const firstLoginOtpValidation = async (req: Request<{}, any, UserLoginOtpReq>, res: Response, next: NextFunction) => {
     try {
         const { otp, email } = req.body;
 
@@ -107,13 +107,56 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, { otp: strin
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
-        const updateRefreshToken:UserUpdateBody = { $set: { refreshToken: RefreshToken, isFirstLogin:false } };
+        const updateRefreshToken: UserUpdateBody = { $set: { refreshToken: RefreshToken, isFirstLogin: false } };
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
         res.statusMessage = "Login Successful";
         res.status(200).json(await sendCustomResponse('Login Successful', { AccessToken, RefreshToken }));
 
-    } catch (error:any) {
+    } catch (error: any) {
+        logger.error(error);
+        next(new InternalServerError('Something went wrong'));
+    }
+}
+
+export const forgotPassword = async (req: Request<{}, any, { email: string }>, res: Response, next: NextFunction) => {
+    try {
+        const { email } = req.body;
+
+        const existingUser = await findUserByEmail(email);
+        if (!existingUser) return next(new NotFoundError('User not found with given email id'));
+
+        const sendMailInfo = await sendOtpForPasswordReset(existingUser._id.toString(), existingUser.email);
+        logger.info(sendMailInfo);
+        if (sendMailInfo.accepted.length <= 0) throw new Error('Email Validation failed while creating user');
+
+        res.status(200).json({
+            "message": "OTP sent for reset password.",
+            "emailSent": true
+        });
+    } catch (error) {
+        logger.error(error);
+        next
+    }
+}
+
+export const resetPassword = async (req: Request<{}, any, UserPasswordResetReq>, res: Response, next: NextFunction) => {
+    try {
+        const { otp, email, password } = req.body;
+
+        const existingUser = await findUserByEmail(email);
+        if (!existingUser) return next(new NotFoundError('User not found with given email id'));
+
+        const isValidOtp = await verifyOtp(existingUser._id.toString(), otp);
+        if (!isValidOtp) return next(new AuthenticationError("Invalid Otp"));
+
+
+        const hashedPass = await hashPassword(password);
+        const updateBody: UserUpdateBody = { $set: { password: hashedPass } };
+
+        const updatedUser = await updateUserById(existingUser._id.toString(), updateBody);
+        res.status(200).json(await sendCustomResponse('Password updated successfully'));
+    } catch (error: any) {
         logger.error(error);
         next(new InternalServerError('Something went wrong'));
     }

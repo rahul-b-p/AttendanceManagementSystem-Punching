@@ -23,7 +23,9 @@ export type UserUpdateBody = {
 
 export type UserAuthBody = UserBase;
 
-export type UserOtpReq = {
+export type UserLoginOtpReq = {
     otp: string;
     email: string;
 }
+
+export type UserPasswordResetReq = UserLoginOtpReq & { password: string }

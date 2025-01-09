@@ -3,6 +3,7 @@ import { Roles } from "../enums";
 import { createUserSchema } from "../schemas";
 import { checkAdminExists, insertUser, validateEmailUniqueness } from "../services";
 import { UserInsertArgs } from "../types";
+import { checkEmailValidity } from "../validators";
 import { logger } from "./logger";
 
 
@@ -14,6 +15,9 @@ export const createDefaultAdmin = async () => {
             logger.info('Admin exists.');
             return;
         }
+
+        const isValidEmail = await checkEmailValidity(ADMIN_EMAIL);
+        if (!isValidEmail) throw new Error("Invalid Email Provided on env");
 
         const user: UserInsertArgs = {
             username: ADMIN_USERNAME,
