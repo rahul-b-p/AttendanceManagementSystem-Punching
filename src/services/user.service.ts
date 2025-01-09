@@ -18,7 +18,7 @@ export const checkAdminExists = async (): Promise<boolean> => {
 export const validateEmailUniqueness = async (email: string): Promise<boolean> => {
     try {
         const emailExists = await User.exists({ email });
-        return emailExists !== null;
+        return emailExists === null;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
@@ -30,8 +30,8 @@ export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
         const newUser: IUser = new User(user);
         await newUser.save();
 
-        const { password, refreshToken, ...userWithoutSensitiveData } = newUser.toObject()
-        return userWithoutSensitiveData;
+        const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = newUser.toObject()
+        return userWithoutSensitiveData as IUserData;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
@@ -52,7 +52,7 @@ export const updateUserById = async (_id: string, userToUpdate: UserUpdateBody):
         const updatedUser = await User.findByIdAndUpdate(_id, userToUpdate, { new: true });
         if (!updatedUser) return null;
 
-        const { password, refreshToken, ...userWithoutSensitiveData } = updatedUser.toObject();
+        const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = updatedUser.toObject();
         return userWithoutSensitiveData as IUserData;
     } catch (error: any) {
         logger.error(error);

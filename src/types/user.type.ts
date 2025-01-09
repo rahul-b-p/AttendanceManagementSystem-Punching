@@ -12,7 +12,7 @@ export type UserInsertArgs = UserBase & {
     role: Roles
 };
 
-export type IUserData = Omit<IUser, 'password' | 'refreshToken'>;
+export type IUserData = Omit<IUser, 'password' | 'refreshToken'|'isFirstLogin'>;
 
 export type UserUpdateBody = {
     $set?: Partial<IUser>;

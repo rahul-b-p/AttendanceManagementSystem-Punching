@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../errors";
 import { logger } from "../utils";
-import { customRequestWithPayload, TokenPayload } from "../interfaces";
+import { customRequestWithPayload } from "../interfaces";
 import { isValidObjectId } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
 import { blacklistToken, checkRefreshTokenExistsById, findUserById, isTokenBlacklisted } from "../services";

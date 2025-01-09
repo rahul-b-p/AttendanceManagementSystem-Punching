@@ -2,8 +2,8 @@ import express from 'express';
 import { createDefaultAdmin, logger } from './utils';
 import './config/envConfig';
 import { connectDB } from './database';
-import { ErrorHandler } from './middlewares';
-import { authRouter } from './routers';
+import { accessTokenAuth, ErrorHandler } from './middlewares';
+import { authRouter, userRouter } from './routers';
 
 
 const app = express();
@@ -14,7 +14,7 @@ createDefaultAdmin();
 app.use(express.json());
 
 app.use('/auth', authRouter);
-
+app.use('/user', accessTokenAuth, userRouter);
 app.use(ErrorHandler);
 
 const port = process.env.PORT || 3000;
