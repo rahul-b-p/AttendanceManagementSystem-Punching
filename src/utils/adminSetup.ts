@@ -24,9 +24,9 @@ export const createDefaultAdmin = async () => {
         };
         createUserSchema.parse(user);
 
-        const isUniqueEmial = validateEmailUniqueness(user.username);
+        const isUniqueEmial = await validateEmailUniqueness(user.username);
         if (!isUniqueEmial) {
-            logger.error('')
+            throw new Error("got mail from env is not unique")
         }
 
         const defaultAdmin = await insertUser(user);
