@@ -1,10 +1,11 @@
 import { NextFunction, Response } from "express";
-import { AuthenticationError } from "../errors";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../errors";
 import { logger } from "../utils";
 import { customRequestWithPayload, TokenPayload } from "../interfaces";
 import { isValidObjectId } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
-import { blacklistToken, checkRefreshTokenExistsById, isTokenBlacklisted } from "../services";
+import { blacklistToken, checkRefreshTokenExistsById, findUserById, isTokenBlacklisted } from "../services";
+import { Roles } from "../enums";
 
 
 
@@ -49,3 +50,22 @@ export const refreshTokenAuth = async (req: customRequestWithPayload, res: Respo
         next(new AuthenticationError());
     }
 };
+
+export const roleAuth = (...allowedRole: Roles[]) => {
+    return async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
+        try {
+            const id = req.payload?.id;
+            if (!id) throw new Error('The user ID was not added to the payload by the authentication middleware.');
+
+            const existingUser = await findUserById(id);
+            if (!existingUser) throw new Error('Losses the UserId or User Data of an authorized Request! ')
+
+            if (!allowedRole.includes(existingUser.role)) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+
+            next();
+        } catch (error) {
+            logger.error(error);
+            next(new InternalServerError('Something went wrong'));
+        }
+    }
+}
