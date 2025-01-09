@@ -13,7 +13,9 @@ const requiredEnvVariables = [
     'ACCESS_TOKEN_SECRET',
     'ACCESS_TOKEN_EXPIRATION',
     'REFRESH_TOKEN_SECRET',
-    'REFRESH_TOKEN_EXPIRATION'
+    'REFRESH_TOKEN_EXPIRATION',
+    'HOST_EMAIL_ID',
+    'HOST_EMAIL_PASSKEY'
 ];
 
 requiredEnvVariables.forEach((envVar) => {
@@ -33,3 +35,5 @@ export const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 export const ACCESS_TOKEN_EXPIRATION = process.env.ACCESS_TOKEN_EXPIRATION as string;
 export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 export const REFRESH_TOKEN_EXPIRATION = process.env.REFRESH_TOKEN_EXPIRATION as string;
+export const HOST_EMAIL_ID = process.env.HOST_EMAIL_ID as string;
+export const HOST_EMAIL_PASSKEY = process.env.HOST_EMAIL_PASSKEY as string;
