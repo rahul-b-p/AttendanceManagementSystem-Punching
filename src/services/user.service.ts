@@ -32,7 +32,7 @@ export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
         await newUser.save();
 
         delete (newUser as any).__v;
-        const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = newUser.toObject()
+        const { password, refreshToken, verified, ...userWithoutSensitiveData } = newUser.toObject()
         return userWithoutSensitiveData as IUserData;
     } catch (error: any) {
         logger.error(error);

@@ -17,6 +17,7 @@ app.use(express.json());
 
 app.use('/auth', authRouter);
 app.use('/user', accessTokenAuth, userRouter);
+app.use('/user', accessTokenAuth, userRouter);
 app.use('/role', accessTokenAuth, roleAuth(Roles.admin), roleRouter);
 app.use('/office', accessTokenAuth, officeRouter);
 app.use(ErrorHandler);
