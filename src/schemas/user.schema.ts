@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Roles } from "../enums";
 import { phoneSchema } from "./phone.schema";
 import { passwordSchema } from "./password.schema";
+import { otpSchema } from "./otp.schema";
 
 
 
@@ -18,3 +19,9 @@ export const userAuthSchema = z.object({
     email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
     password: passwordSchema,
 }).strict('Invalid Request Body');
+
+
+export const userOtpValidationSchema = z.object({
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
+    otp: otpSchema
+}).strict();

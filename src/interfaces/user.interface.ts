@@ -11,5 +11,6 @@ export interface IUser extends Document {
     password: string;
     role: Roles;
     refreshToken?: string;
+    isFirstLogin: boolean;
     createAt: Date;
 }

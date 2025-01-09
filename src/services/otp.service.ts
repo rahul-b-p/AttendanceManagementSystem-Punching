@@ -21,6 +21,9 @@ export const generateOtp = async (userId: string): Promise<string> => {
 export const verifyOtp = async (userId: string, otp: string): Promise<boolean> => {
     try {
         const otpExisted = await Otp.exists({ userId, otp });
+        if (otpExisted) {
+            await Otp.findByIdAndDelete(otpExisted._id);
+        }
         return otpExisted !== null;
     } catch (error: any) {
         logger.error(error);

@@ -22,3 +22,8 @@ export type UserUpdateBody = {
 };
 
 export type UserAuthBody = UserBase;
+
+export type UserOtpReq = {
+    otp: string;
+    email: string;
+}

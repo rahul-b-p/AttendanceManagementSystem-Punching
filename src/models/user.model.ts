@@ -32,6 +32,11 @@ const userSchema = new Schema<IUser>({
         type: String,
         required: false,
     },
+    isFirstLogin: {
+        type: Boolean,
+        default: true,
+        required: true
+    },
     createAt: {
         type: Date,
         default: () => new Date()
@@ -43,7 +48,7 @@ userSchema.pre('save', async function (next) {
         try {
             this.password = await hashPassword(this.password);
             next();
-        } catch (err:any) {
+        } catch (err: any) {
             next(err);
         }
     } else {

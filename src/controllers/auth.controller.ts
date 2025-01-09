@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { logger } from "../utils";
-import { AuthenticationError, InternalServerError, NotFoundError } from "../errors";
+import { AuthenticationError, BadRequestError, InternalServerError, NotFoundError } from "../errors";
 import { comparePassword, sendCustomResponse } from "../utils";
 import { signAccessToken, signRefreshToken } from "../jwt";
-import { UserAuthBody } from "../types";
-import { blacklistToken, findUserByEmail, findUserById, updateUserById } from "../services";
+import { UserAuthBody, UserUpdateBody } from "../types";
+import { blacklistToken, findUserByEmail, findUserById, sendOtpForInitialLogin, updateUserById, verifyOtp } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 
 
@@ -20,6 +20,19 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
 
         const isVerifiedPassword = await comparePassword(password, existingUser.password);
         if (!isVerifiedPassword) return next(new AuthenticationError('Invalid Password'));
+
+        if (existingUser.isFirstLogin) {
+
+            const sendMailInfo = await sendOtpForInitialLogin(existingUser._id.toString(), existingUser.email);
+            logger.info(sendMailInfo);
+            if (sendMailInfo.accepted.length <= 0) throw new Error('Email Validation failed while creating user');
+
+            res.status(200).json({
+                "message": "OTP sent for first-time login verification.",
+                "emailSent": true
+            });
+            return;
+        }
 
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
@@ -75,6 +88,32 @@ export const logout = async (req: customRequestWithPayload, res: Response, next:
 
         res.status(200).json(await sendCustomResponse('Logged out successfully.'));
     } catch (error) {
+        logger.error(error);
+        next(new InternalServerError('Something went wrong'));
+    }
+}
+
+export const firstLoginOtpValidation = async (req: Request<{}, any, { otp: string, email: string }>, res: Response, next: NextFunction) => {
+    try {
+        const { otp, email } = req.body;
+
+        const existingUser = await findUserByEmail(email);
+        if (!existingUser) return next(new NotFoundError('User not found with given email id'));
+
+        const isValidOtp = await verifyOtp(existingUser._id.toString(), otp);
+        if (!isValidOtp) return next(new AuthenticationError("Invalid Otp"));
+
+
+        const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
+        const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
+
+        const updateRefreshToken:UserUpdateBody = { $set: { refreshToken: RefreshToken, isFirstLogin:false } };
+        await updateUserById(existingUser._id.toString(), updateRefreshToken);
+
+        res.statusMessage = "Login Successful";
+        res.status(200).json(await sendCustomResponse('Login Successful', { AccessToken, RefreshToken }));
+
+    } catch (error:any) {
         logger.error(error);
         next(new InternalServerError('Something went wrong'));
     }

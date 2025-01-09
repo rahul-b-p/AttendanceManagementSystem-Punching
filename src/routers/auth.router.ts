@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { accessTokenAuth, validateReqBody } from "../middlewares";
-import { userAuthSchema } from "../schemas";
+import { userAuthSchema, userOtpValidationSchema } from "../schemas";
 import { authController } from "../controllers";
 import { refreshTokenAuth } from "../middlewares";
 
@@ -14,3 +14,5 @@ router.post('/login', validateReqBody(userAuthSchema), authController.login);
 router.post('/refresh', refreshTokenAuth, authController.refresh);
 
 router.post('/logout', accessTokenAuth, authController.logout);
+
+router.post('/verify-first-login', validateReqBody(userOtpValidationSchema), authController.firstLoginOtpValidation);
