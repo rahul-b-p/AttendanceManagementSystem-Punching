@@ -1,4 +1,3 @@
-import { string } from "zod";
 import { Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
