@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_PHONE, ADMIN_USERNAME } from "../config";
+import { ADMIN_EMAIL, ADMIN_PHONE, ADMIN_USERNAME } from "../config";
 import { Roles } from "../enums";
 import { createUserSchema } from "../schemas";
 import { checkAdminExists, insertUser, validateEmailUniqueness } from "../services";
@@ -23,14 +23,13 @@ export const createDefaultAdmin = async () => {
             username: ADMIN_USERNAME,
             email: ADMIN_EMAIL,
             phone: ADMIN_PHONE,
-            password: ADMIN_PASSWORD,
             role: Roles.admin
         };
         createUserSchema.parse(user);
 
-        const isUniqueEmial = validateEmailUniqueness(user.username);
+        const isUniqueEmial = await validateEmailUniqueness(user.username);
         if (!isUniqueEmial) {
-            logger.error('')
+            throw new Error("Admin email is not unique");
         }
 
         const defaultAdmin = await insertUser(user);
