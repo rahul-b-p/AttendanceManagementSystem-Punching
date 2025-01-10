@@ -3,7 +3,7 @@ import { hashPassword, logger } from "../utils";
 import { AuthenticationError, InternalServerError, NotFoundError } from "../errors";
 import { comparePassword, sendCustomResponse } from "../utils";
 import { signAccessToken, signRefreshToken } from "../jwt";
-import { UserAuthBody, UserLoginOtpReq, UserPasswordResetReq, UserUpdateArgs } from "../types";
+import { UserAuthBody, UserOtpVerifyBody, UserPasswordResetReq, UserUpdateArgs } from "../types";
 import { blacklistToken, findUserByEmail, findUserById, getUserData, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 
@@ -97,9 +97,9 @@ export const logout = async (req: customRequestWithPayload, res: Response, next:
     }
 }
 
-export const firstLoginOtpValidation = async (req: Request<{}, any, UserLoginOtpReq>, res: Response, next: NextFunction) => {
+export const firstLoginOtpValidation = async (req: Request<{}, any, UserOtpVerifyBody>, res: Response, next: NextFunction) => {
     try {
-        const { otp, email } = req.body;
+        const { otp, email, confirmPassword } = req.body;
 
         const existingUser = await findUserByEmail(email);
         if (!existingUser) return next(new NotFoundError('User not found with given email id'));
@@ -111,7 +111,8 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserLoginOtp
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
-        const updateRefreshToken: UserUpdateArgs = { $set: { refreshToken: RefreshToken, verified: false } };
+        const password = await hashPassword(confirmPassword);
+        const updateRefreshToken: UserUpdateArgs = { $set: { refreshToken: RefreshToken, verified: true, password } };
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
         const UserData = await getUserData(existingUser._id.toString());

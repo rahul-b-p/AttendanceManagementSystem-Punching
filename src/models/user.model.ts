@@ -19,7 +19,7 @@ const userSchema = new Schema<IUser>({
         required: true
     },
     password: {
-        type: String,
+        type: String
     },
     role: {
         type: String,
@@ -31,8 +31,8 @@ const userSchema = new Schema<IUser>({
     },
     verified: {
         type: Boolean,
-        default: false,
-        required: true
+        required: true,
+        default: false
     },
     createAt: {
         type: Date,

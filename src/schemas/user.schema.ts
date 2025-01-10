@@ -34,14 +34,21 @@ export const userAuthSchema = z
 
 
 
-
-export const forgotPasswordSchema = z.
-    object({
-        email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" })
-    })
-    .strict();
-
-
+export const userOtpValidationSchema = z.object({
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
+    otp: otpSchema,
+    password: passwordSchema,
+    confirmPassword: passwordSchema,
+}).strict().refine(
+    (data) => data.password === data.confirmPassword,
+    {
+        message: "Passwords do not match",
+        path: ["confirmPassword"], // This points the error to the `confirmPassword` field
+    }
+);
+export const forgotPasswordSchema = z.object({
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" })
+});
 
 export const resetPasswordSchema = z
     .object({
