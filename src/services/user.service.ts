@@ -81,7 +81,7 @@ export const findUserById = async (_id: string): Promise<IUser | null> => {
     }
 }
 
-export const findUsers = async (page: number, query: userQuery, sort: UserSortArgs): Promise<UserToShow[]|null> => {
+export const findUsers = async (page: number, query: userQuery, sort: UserSortArgs): Promise<UserToShow[] | null> => {
     try {
         const limit = 10;
         const skip = (page - 1) * limit;
@@ -101,8 +101,19 @@ export const findUsers = async (page: number, query: userQuery, sort: UserSortAr
                 },
             }
         ]);
-        if (users.length==0) return null;
+        if (users.length == 0) return null;
         else return users;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const deleteUserById = async (_id: string): Promise<void> => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(_id);
+        if (!deletedUser) throw new Error('Invalid Id provided for deletion');
+        else return;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

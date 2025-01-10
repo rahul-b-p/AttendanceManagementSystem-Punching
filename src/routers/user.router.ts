@@ -13,3 +13,5 @@ router.post('/', roleAuth(Roles.admin, Roles.manager), validateReqBody(createUse
 router.get('/', roleAuth(Roles.admin, Roles.manager), validateReqQuery(userFilterQuerySchema), userController.readUsers);
 
 router.put('/:id', roleAuth(Roles.admin, Roles.manager), validateReqBody(updateUserSchema), userController.updateUserByAdmin);
+
+router.delete('/:id', roleAuth(Roles.admin, Roles.manager), userController.deleteUserByAdmin);

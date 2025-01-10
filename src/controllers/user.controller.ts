@@ -4,7 +4,7 @@ import { getUserSortArgs, logger, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
-import { findUserById, findUsers, insertUser, updateUserById, validateEmailUniqueness } from "../services";
+import { deleteUserById, findUserById, findUsers, insertUser, updateUserById, validateEmailUniqueness } from "../services";
 import { Roles, UserSortArgs, UserSortKeys } from "../enums";
 
 
@@ -41,7 +41,7 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
         const { role, page, sortKey } = req.query;
         if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
-        const query: userQuery =role? { role }:{};
+        const query: userQuery = role ? { role } : {};
         const sort: UserSortArgs = getUserSortArgs(sortKey);
 
 
@@ -84,5 +84,26 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
     } catch (error) {
         logger.error(error);
         next(new InternalServerError());
+    }
+}
+
+export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) return next(new BadRequestError("Invalid User Id"));
+
+        const existingUser = await findUserById(id);
+        if (!existingUser) return next(new NotFoundError("Requested user not found!"));
+
+        const ownerId = req.payload?.id as string;
+        const owner = await findUserById(ownerId) as IUser;
+        if (existingUser.role == Roles.admin && owner.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+
+        await deleteUserById(id);
+        res.status(200).json(await sendCustomResponse("User Deleted Successfully"));
+    } catch (error) {
+        logger.info(error);
+        next(error)
     }
 }
