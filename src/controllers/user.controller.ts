@@ -4,7 +4,7 @@ import { getUserSortArgs, logger, pagenate, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId, validateRole } from "../validators";
-import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData, sendUserCreationNotification, sendUserUpdationNotification } from "../services";
+import { deleteUserById, fetchUsers, findUserById, getUserData, insertUser, sendUserCreationNotification, sendUserUpdationNotification, updateUserById, validateEmailUniqueness } from "../services";
 import { Roles, UserSortArgs } from "../enums";
 
 
