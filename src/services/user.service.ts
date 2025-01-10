@@ -30,6 +30,7 @@ export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
         const newUser: IUser = new User(user);
         await newUser.save();
 
+        delete (newUser as any).__v;
         const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = newUser.toObject()
         return userWithoutSensitiveData as IUserData;
     } catch (error: any) {

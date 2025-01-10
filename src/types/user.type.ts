@@ -6,13 +6,14 @@ export type UserAuthBody = {
     password: string;
 }
 
-export type UserInsertArgs = UserAuthBody & {
+export type UserInsertArgs = {
     username: string;
+    email: string;
     phone: string;
     role: Roles
 };
 
-export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'isFirstLogin'|'__v'>;
+export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'isFirstLogin' | '__v'>;
 
 export type UserUpdateArgs = {
     $set?: Partial<IUser>;

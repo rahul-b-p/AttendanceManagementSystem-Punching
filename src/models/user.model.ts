@@ -21,7 +21,6 @@ const userSchema = new Schema<IUser>({
     },
     password: {
         type: String,
-        required: true
     },
     role: {
         type: String,
@@ -60,7 +59,9 @@ const userSchema = new Schema<IUser>({
 userSchema.pre('save', async function (next) {
     if (this.isModified('password') || this.isNew) {
         try {
-            this.password = await hashPassword(this.password);
+            if (this.password) {
+                this.password = await hashPassword(this.password);
+            }
             next();
         } catch (err: any) {
             next(err);
