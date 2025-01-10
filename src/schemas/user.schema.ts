@@ -35,3 +35,12 @@ export const resetPasswordSchema = z.object({
     otp: otpSchema,
     password: passwordSchema
 })
+
+export const updateUserSchema = z.object({
+    username: z.string({ message: "Username is required." }).min(5, "Username must be at least 5 characters long").optional(),
+    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }).optional(),
+    phone: phoneSchema.optional(),
+    role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" }).optional()
+}).strict().refine((data) =>
+    data.email || data.phone || data.role || data.username,
+    { message: "Update body should contain any of update feilds, username, email, phone, role" })

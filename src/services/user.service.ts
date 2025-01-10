@@ -1,7 +1,7 @@
 import { Roles } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
-import { IUserData, UserInsertArgs, UserUpdateBody } from "../types";
+import { IUserData, UserInsertArgs, UserUpdateArgs } from "../types";
 import { logger } from "../utils";
 
 
@@ -47,12 +47,13 @@ export const findUserByEmail = async (email: string): Promise<IUser | null> => {
     }
 }
 
-export const updateUserById = async (_id: string, userToUpdate: UserUpdateBody): Promise<IUserData | null> => {
+export const updateUserById = async (_id: string, userToUpdate: UserUpdateArgs): Promise<IUserData | null> => {
     try {
-        const updatedUser = await User.findByIdAndUpdate(_id, userToUpdate, { new: true });
+        const updatedUser = await User.findByIdAndUpdate(_id, userToUpdate, { new: true }).lean();
         if (!updatedUser) return null;
 
-        const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = updatedUser.toObject();
+        delete (updatedUser as any).__v;
+        const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = updatedUser;
         return userWithoutSensitiveData as IUserData;
     } catch (error: any) {
         logger.error(error);

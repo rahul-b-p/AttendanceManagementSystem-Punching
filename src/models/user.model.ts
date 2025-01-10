@@ -41,7 +41,21 @@ const userSchema = new Schema<IUser>({
         type: Date,
         default: () => new Date()
     }
-});
+}, {
+    toJSON: {
+        transform(doc, ret) {
+            delete ret.__v;
+            return ret;
+        },
+    },
+    toObject: {
+        transform(doc, ret) {
+            delete ret.__v;
+            return ret;
+        }
+    }
+}
+);
 
 userSchema.pre('save', async function (next) {
     if (this.isModified('password') || this.isNew) {

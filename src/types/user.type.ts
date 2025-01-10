@@ -1,27 +1,27 @@
 import { Roles } from "../enums";
 import { IUser } from "../interfaces";
 
-type UserBase = {
+export type UserAuthBody = {
     email: string;
     password: string;
 }
 
-export type UserInsertArgs = UserBase & {
+export type UserInsertArgs = UserAuthBody & {
     username: string;
     phone: string;
     role: Roles
 };
 
-export type IUserData = Omit<IUser, 'password' | 'refreshToken'|'isFirstLogin'>;
+export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'isFirstLogin'|'__v'>;
 
-export type UserUpdateBody = {
+export type UserUpdateArgs = {
     $set?: Partial<IUser>;
     $unset?: {
         refreshToken?: 1;
     };
 };
 
-export type UserAuthBody = UserBase;
+
 
 export type UserLoginOtpReq = {
     otp: string;
@@ -29,3 +29,5 @@ export type UserLoginOtpReq = {
 }
 
 export type UserPasswordResetReq = UserLoginOtpReq & { password: string }
+
+export type UserUpdateBody = Partial<UserInsertArgs>
