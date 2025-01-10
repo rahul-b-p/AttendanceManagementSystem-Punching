@@ -1,11 +1,11 @@
 import { NextFunction, Response } from "express";
 import { BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
-import { logger, sendCustomResponse } from "../utils"
+import { getUserSortArgs, logger, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
-import { UserInsertArgs, UserUpdateArgs, UserUpdateBody } from "../types";
+import { UserFilterQuery, UserInsertArgs, userQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
-import { findUserById, insertUser, updateUserById, validateEmailUniqueness } from "../services";
-import { Roles } from "../enums";
+import { findUserById, findUsers, insertUser, updateUserById, validateEmailUniqueness } from "../services";
+import { Roles, UserSortArgs, UserSortKeys } from "../enums";
 
 
 
@@ -30,6 +30,27 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
     } catch (error) {
         logger.error(error);
         next(new InternalServerError());
+    }
+}
+
+export const readUsers = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery>, res: Response, next: NextFunction) => {
+    try {
+        const ownerId = req.payload?.id as string;
+        const owner = await findUserById(ownerId) as IUser;
+
+        const { role, page, sortKey } = req.query;
+        if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+
+        const query: userQuery =role? { role }:{};
+        const sort: UserSortArgs = getUserSortArgs(sortKey);
+
+
+        const users = await findUsers(Number(page), query, sort);
+        const message = users ? 'User Data Fetched Successfully' : 'No Users found to show';
+        res.status(200).json(await sendCustomResponse(message, users));
+    } catch (error) {
+        logger.error(error);
+        next(error);
     }
 }
 

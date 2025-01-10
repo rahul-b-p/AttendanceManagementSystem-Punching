@@ -30,7 +30,7 @@ export const validateReqQuery= (schema: ZodSchema) => {
         } catch (error) {
             if (error instanceof ZodError) {
                 error.errors.map((e) => {
-                    return next(new BadRequestError(`Bad Request, Invalid Query`));
+                    return next(new BadRequestError(`Bad Request, Invalid Query:${e.message}`));
                 })
             }
             else next(new InternalServerError('Validation failed'));

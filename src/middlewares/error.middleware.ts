@@ -16,10 +16,17 @@ export const ErrorHandler: ErrorRequestHandler = (err: Error, req: Request, res:
         return;
     }
     
-    else {
+    else if(err instanceof SyntaxError){
         res.status(400).json({
-            message: 'Something bad has happend while requesting',
-            error: err.message
+            error: err.name,
+            message: 'Something bad has happend while requesting'
         });
+    }
+
+    else{
+        res.status(500).json({
+            success:false,
+            message:"Internal Server Error"
+        })
     }
 }

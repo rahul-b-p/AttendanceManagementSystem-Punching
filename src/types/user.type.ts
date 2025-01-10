@@ -1,16 +1,17 @@
-import { Roles } from "../enums";
+import { Types } from "mongoose";
+import { Roles, UserSortKeys } from "../enums";
 import { IUser } from "../interfaces";
 
 export type UserAuthBody = {
     email: string;
     password: string;
-}
+};
 
 export type UserInsertArgs = {
     username: string;
     email: string;
     phone: string;
-    role: Roles
+    role: Roles;
 };
 
 export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'isFirstLogin' | '__v'>;
@@ -27,8 +28,22 @@ export type UserUpdateArgs = {
 export type UserLoginOtpReq = {
     otp: string;
     email: string;
+};
+
+export type UserPasswordResetReq = UserLoginOtpReq & { password: string };
+
+export type UserUpdateBody = Partial<UserInsertArgs>;
+
+export type UserFilterQuery = {
+    page: string;
+    role?: Roles;
+    sortKey?: UserSortKeys;
+};
+
+export type userQuery = Partial<UserInsertArgs>;
+
+
+export type UserToShow = UserInsertArgs & {
+    _id: Types.ObjectId;
+    createAt: Date;
 }
-
-export type UserPasswordResetReq = UserLoginOtpReq & { password: string }
-
-export type UserUpdateBody = Partial<UserInsertArgs>
