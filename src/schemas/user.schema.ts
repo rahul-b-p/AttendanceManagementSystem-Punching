@@ -43,7 +43,7 @@ export const userOtpValidationSchema = z.object({
     (data) => data.password === data.confirmPassword,
     {
         message: "Passwords do not match",
-        path: ["confirmPassword"], // This points the error to the `confirmPassword` field
+        path: ["confirmPassword"],
     }
 );
 export const forgotPasswordSchema = z.object({

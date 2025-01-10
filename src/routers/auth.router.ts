@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { accessTokenAuth, validateReqBody } from "../middlewares";
-import { forgotPasswordSchema, resetPasswordSchema, userAuthSchema, userOtpValidationSchema } from "../schemas";
+import { forgotPasswordSchema, userAuthSchema, userOtpValidationSchema } from "../schemas";
 import { authController } from "../controllers";
 import { refreshTokenAuth } from "../middlewares";
 
@@ -19,4 +19,4 @@ router.post('/verify-first-login', validateReqBody(userOtpValidationSchema), aut
 
 router.post('/forgot-password', validateReqBody(forgotPasswordSchema), authController.forgotPassword);
 
-router.post('/reset-password',validateReqBody(resetPasswordSchema),authController.resetPassword);
+router.post('/reset-password', validateReqBody(userOtpValidationSchema), authController.resetPassword);

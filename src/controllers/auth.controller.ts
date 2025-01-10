@@ -147,9 +147,9 @@ export const forgotPassword = async (req: Request<{}, any, { email: string }>, r
     }
 }
 
-export const resetPassword = async (req: Request<{}, any, UserPasswordResetReq>, res: Response, next: NextFunction) => {
+export const resetPassword = async (req: Request<{}, any,UserOtpVerifyBody>, res: Response, next: NextFunction) => {
     try {
-        const { otp, email, password } = req.body;
+        const { otp, email, confirmPassword } = req.body;
 
         const existingUser = await findUserByEmail(email);
         if (!existingUser) return next(new NotFoundError('User not found with given email id'));
@@ -158,8 +158,8 @@ export const resetPassword = async (req: Request<{}, any, UserPasswordResetReq>,
         if (!isValidOtp) return next(new AuthenticationError("Invalid Otp"));
 
 
-        const hashedPass = await hashPassword(password);
-        const updateBody: UserUpdateArgs = { $set: { password: hashedPass } };
+        const password = await hashPassword(confirmPassword);
+        const updateBody: UserUpdateArgs = { $set: { password: password } };
 
         const updatedUser = await updateUserById(existingUser._id.toString(), updateBody);
         res.status(200).json(await sendCustomResponse('Password updated successfully'));
