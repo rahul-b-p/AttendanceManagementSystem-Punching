@@ -63,3 +63,4 @@ export type UserSearchQuery = {
 export type UserFetchResult = PageInfo & {
     data: UserToShow[];
 }
+
