@@ -82,12 +82,18 @@ export const findUserById = async (_id: string): Promise<IUser | null> => {
     }
 }
 
-export const findUsers = async (page: number, query: userQuery, sort: UserSortArgs): Promise<UserToShow[] | null> => {
+export const fetchUsers = async (page: number, query: userQuery, sort: UserSortArgs, username?: string): Promise<UserToShow[] | null> => {
     try {
         const limit = 10;
         const skip = (page - 1) * limit;
+
+        const matchFilter: any = { ...query };
+        if (username) {
+            matchFilter.username = { $regex: username, $options: "i" };
+        }
+
         const users: UserToShow[] = await User.aggregate([
-            { $match: query },
+            { $match: matchFilter },
             { $sort: JSON.parse(sort) },
             { $skip: skip },
             { $limit: limit },
@@ -100,60 +106,21 @@ export const findUsers = async (page: number, query: userQuery, sort: UserSortAr
                     role: 1,
                     createAt: 1,
                 },
-            }
+            },
         ]);
-        if (users.length == 0) return null;
-        else return users;
+
+        return users.length > 0 ? users : null;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
     }
-}
+};
 
 export const deleteUserById = async (_id: string): Promise<void> => {
     try {
         const deletedUser = await User.findByIdAndDelete(_id);
         if (!deletedUser) throw new Error('Invalid Id provided for deletion');
         else return;
-    } catch (error: any) {
-        logger.error(error);
-        throw new Error(error.message);
-    }
-}
-
-export const searchUserByUsername = async (page: number, query: userQuery, sort: UserSortArgs, username: string): Promise<UserToShow[] | null> => {
-    try {
-        const limit = 10;
-        const skip = (page - 1) * limit;
-        const users: UserToShow[] = await User.aggregate([
-            {
-                $match: {
-                    $text: {
-                        $search: username,
-                        $caseSensitive: false,
-                        $diacriticSensitive:true
-                    }
-                }
-            },
-            {
-                $match: query
-            },
-            { $sort: JSON.parse(sort) },
-            { $skip: skip },
-            { $limit: limit },
-            {
-                $project: {
-                    _id: 1,
-                    username: 1,
-                    email: 1,
-                    phone: 1,
-                    role: 1,
-                    createAt: 1,
-                },
-            }
-        ]);
-        if (users.length == 0) return null;
-        else return users;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
