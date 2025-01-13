@@ -107,7 +107,7 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserLoginOtp
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
-        const updateRefreshToken: UserUpdateArgs = { $set: { refreshToken: RefreshToken, isFirstLogin: false } };
+        const updateRefreshToken: UserUpdateBody = { $set: { refreshToken: RefreshToken, isFirstLogin: false } };
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
         res.statusMessage = "Login Successful";
@@ -152,7 +152,7 @@ export const resetPassword = async (req: Request<{}, any, UserPasswordResetReq>,
 
 
         const hashedPass = await hashPassword(password);
-        const updateBody: UserUpdateArgs = { $set: { password: hashedPass } };
+        const updateBody: UserUpdateBody = { $set: { password: hashedPass } };
 
         const updatedUser = await updateUserById(existingUser._id.toString(), updateBody);
         res.status(200).json(await sendCustomResponse('Password updated successfully'));

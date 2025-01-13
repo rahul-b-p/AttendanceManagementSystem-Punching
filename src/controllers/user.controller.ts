@@ -4,8 +4,8 @@ import { getUserSortArgs, logger, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
-import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness } from "../services";
-import { Roles, UserSortArgs, UserSortKeys } from "../enums";
+import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData } from "../services";
+import { Roles, UserSortArgs } from "../enums";
 
 
 
@@ -125,6 +125,25 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
         res.status(200).json(await sendCustomResponse(responseMessage, users));
     } catch (error) {
         logger.info(error);
+        next(error);
+    }
+}
+
+export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    try {
+        const ownerId = req.payload?.id as string;
+        const owner = await findUserById(ownerId) as IUser;
+
+        const { id } = req.params;
+        const existingUser = await getUserData(id);
+
+        if (!existingUser) throw new NotFoundError('User Not Found!')
+
+        if (existingUser.role == Roles.admin && owner.role !== Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+
+        res.status(200).json(await sendCustomResponse("User Details Fetched", existingUser));
+    } catch (error) {
+        logger.error(error);
         next(error);
     }
 }

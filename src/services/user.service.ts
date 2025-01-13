@@ -126,3 +126,13 @@ export const deleteUserById = async (_id: string): Promise<void> => {
         throw new Error(error.message);
     }
 }
+
+export const getUserData = async (_id: string): Promise<UserToShow> => {
+    try {
+        const user = await User.findById(_id, { password: 0, refreshToken: 0, __v: 0 }).lean();
+        return user as UserToShow;
+    } catch (error:any) {
+        logger.error
+        throw new Error(error.message);
+    }
+}

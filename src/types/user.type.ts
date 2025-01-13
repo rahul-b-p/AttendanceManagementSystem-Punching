@@ -14,7 +14,7 @@ export type UserInsertArgs = {
     role: Roles;
 };
 
-export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'isFirstLogin' | '__v'>;
+export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'verified' | '__v'>;
 
 export type UserUpdateArgs = {
     $set?: Partial<IUser>;
@@ -24,11 +24,15 @@ export type UserUpdateArgs = {
 };
 
 
-
 export type UserLoginOtpReq = {
     otp: string;
     email: string;
 };
+
+export type UserOtpVerifyBody = UserLoginOtpReq & {
+    password: string;
+    confirmPassword: string;
+}
 
 export type UserPasswordResetReq = UserLoginOtpReq & { password: string };
 
