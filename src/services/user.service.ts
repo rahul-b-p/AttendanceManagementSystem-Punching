@@ -55,7 +55,7 @@ export const updateUserById = async (_id: string, userToUpdate: UserUpdateArgs):
         if (!updatedUser) return null;
 
         delete (updatedUser as any).__v;
-        const { password, refreshToken, isFirstLogin, ...userWithoutSensitiveData } = updatedUser;
+        const { password, refreshToken, ...userWithoutSensitiveData } = updatedUser;
         return userWithoutSensitiveData as IUserData;
     } catch (error: any) {
         logger.error(error);

@@ -104,6 +104,27 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         res.status(200).json(await sendCustomResponse("User Deleted Successfully"));
     } catch (error) {
         logger.info(error);
-        next(error)
+        next(error);
+    }
+}
+
+export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery & UserSearchQuery>, res: Response, next: NextFunction) => {
+    try {
+        const ownerId = req.payload?.id as string;
+        const owner = await findUserById(ownerId) as IUser;
+
+        const { role, page, sortKey, username } = req.query;
+        if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+
+        const query: userQuery = role ? { role } : {};
+        const sort: UserSortArgs = getUserSortArgs(sortKey);
+
+        const users = await fetchUsers(Number(page), query, sort, username);
+
+        const responseMessage = users ? 'User Data Fetched Successfully' : 'No Users found to show';
+        res.status(200).json(await sendCustomResponse(responseMessage, users));
+    } catch (error) {
+        logger.info(error);
+        next(error);
     }
 }
