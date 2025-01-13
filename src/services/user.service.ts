@@ -1,7 +1,8 @@
+import { string } from "zod";
 import { Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
-import { IUserData, UserInsertArgs, userQuery, UserToShow, UserUpdateArgs } from "../types";
+import { IUserData, UserInsertArgs, userQuery, UserSearchQuery, UserToShow, UserUpdateArgs } from "../types";
 import { logger } from "../utils";
 
 
@@ -114,6 +115,45 @@ export const deleteUserById = async (_id: string): Promise<void> => {
         const deletedUser = await User.findByIdAndDelete(_id);
         if (!deletedUser) throw new Error('Invalid Id provided for deletion');
         else return;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const searchUserByUsername = async (page: number, query: userQuery, sort: UserSortArgs, username: string): Promise<UserToShow[] | null> => {
+    try {
+        const limit = 10;
+        const skip = (page - 1) * limit;
+        const users: UserToShow[] = await User.aggregate([
+            {
+                $match: {
+                    $text: {
+                        $search: username,
+                        $caseSensitive: false,
+                        $diacriticSensitive:true
+                    }
+                }
+            },
+            {
+                $match: query
+            },
+            { $sort: JSON.parse(sort) },
+            { $skip: skip },
+            { $limit: limit },
+            {
+                $project: {
+                    _id: 1,
+                    username: 1,
+                    email: 1,
+                    phone: 1,
+                    role: 1,
+                    createAt: 1,
+                },
+            }
+        ]);
+        if (users.length == 0) return null;
+        else return users;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

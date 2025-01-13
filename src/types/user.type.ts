@@ -47,3 +47,7 @@ export type UserToShow = UserInsertArgs & {
     _id: Types.ObjectId;
     createAt: Date;
 }
+
+export type UserSearchQuery = {
+    username?: string;
+}

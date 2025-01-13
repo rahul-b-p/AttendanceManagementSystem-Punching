@@ -70,7 +70,7 @@ userSchema.pre('save', async function (next) {
         next();
     }
 });
-
+userSchema.index({ username: 'text' });
 const User = mongoose.model<IUser>('users', userSchema);
 
 export default User;

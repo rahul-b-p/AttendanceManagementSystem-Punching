@@ -2,10 +2,10 @@ import { NextFunction, Response } from "express";
 import { BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
 import { getUserSortArgs, logger, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
-import { UserFilterQuery, UserInsertArgs, userQuery, UserUpdateArgs, UserUpdateBody } from "../types";
+import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
-import { deleteUserById, findUserById, findUsers, insertUser, updateUserById, validateEmailUniqueness } from "../services";
-import { Roles, UserSortArgs, UserSortKeys } from "../enums";
+import { deleteUserById, findUserById, findUsers, insertUser, searchUserByUsername, updateUserById, validateEmailUniqueness } from "../services";
+import { Roles, UserSortArgs } from "../enums";
 
 
 
@@ -104,6 +104,33 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         res.status(200).json(await sendCustomResponse("User Deleted Successfully"));
     } catch (error) {
         logger.info(error);
-        next(error)
+        next(error);
+    }
+}
+
+export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery & UserSearchQuery>, res: Response, next: NextFunction) => {
+    try {
+        const ownerId = req.payload?.id as string;
+        const owner = await findUserById(ownerId) as IUser;
+
+        const { role, page, sortKey, username } = req.query;
+        if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+
+        const query: userQuery = role ? { role } : {};
+        const sort: UserSortArgs = getUserSortArgs(sortKey);
+
+        let users;
+        if (username) {
+            users = await searchUserByUsername(Number(page), query, sort, username);
+        }
+        else {
+            users = await findUsers(Number(page), query, sort);
+        }
+
+        const responseMessage = users ? 'User Data Fetched Successfully' : 'No Users found to show';
+        res.status(200).json(await sendCustomResponse(responseMessage, users));
+    } catch (error) {
+        logger.info(error);
+        next(error);
     }
 }

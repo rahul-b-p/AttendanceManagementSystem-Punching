@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { roleAuth, validateReqBody, validateReqQuery } from "../middlewares";
 import { Roles } from "../enums";
-import { createUserSchema, updateUserSchema, userFilterQuerySchema } from "../schemas";
+import { createUserSchema, updateUserSchema, userFilterQuerySchema, userSearchFilterQuerySchema } from "../schemas";
 import { userController } from "../controllers";
 
 
@@ -15,3 +15,5 @@ router.get('/', roleAuth(Roles.admin, Roles.manager), validateReqQuery(userFilte
 router.put('/:id', roleAuth(Roles.admin, Roles.manager), validateReqBody(updateUserSchema), userController.updateUserByAdmin);
 
 router.delete('/:id', roleAuth(Roles.admin, Roles.manager), userController.deleteUserByAdmin);
+
+router.get('/filter', roleAuth(Roles.admin, Roles.manager), validateReqQuery(userSearchFilterQuerySchema), userController.searchAndFilterUser);

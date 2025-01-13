@@ -95,3 +95,13 @@ export const userFilterQuerySchema = z
         sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional()
     })
     .strict();
+
+
+
+export const userSearchFilterQuerySchema = z
+    .object({
+        page: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+        role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" }).optional(),
+        sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional(),
+        username:z.string().optional()
+    })
