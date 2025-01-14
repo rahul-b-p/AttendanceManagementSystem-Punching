@@ -4,3 +4,4 @@ export * from './regex';
 export * from './adminSetup';
 export * from './customResponse';
 export * from './sortUtils';
+export * from './pagenation';

@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
-import { getUserSortArgs, logger, sendCustomResponse } from "../utils"
+import { getUserSortArgs, logger, pagenate, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
@@ -27,9 +27,9 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
 
         const newUser = await insertUser(req.body);
         sendUserCreationNotification(newUser).catch((error) => {
-            console.error("Error sending email:", error);
+            logger.error("Error sending email:", error);
         });
-        
+
         res.status(201).json(await sendCustomResponse("New User Created Successfully", newUser));
     } catch (error) {
         logger.error(error);
@@ -42,16 +42,25 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
         const ownerId = req.payload?.id as string;
         const owner = await findUserById(ownerId) as IUser;
 
-        const { role, page, sortKey } = req.query;
+        const { role, pageNo, pageLimit, sortKey } = req.query;
         if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
         const query: userQuery = role ? { role } : {};
         const sort: UserSortArgs = getUserSortArgs(sortKey);
 
 
-        const users = await fetchUsers(Number(page), query, sort);
-        const message = users ? 'User Data Fetched Successfully' : 'No Users found to show';
-        res.status(200).json(await sendCustomResponse(message, users));
+        const fetchResult = await fetchUsers(Number(pageNo), Number(pageLimit), query, sort);
+
+        const responseMessage = fetchResult ? 'User Data Fetched Successfully' : 'No Users found to show';
+        let PageNationFeilds;
+        if (fetchResult) {
+            const { data, ...pageInfo } = fetchResult
+            PageNationFeilds = pagenate(pageInfo, req.originalUrl);
+        }
+
+        res.status(200).json({
+            success: true, responseMessage, ...fetchResult, ...PageNationFeilds
+        });
     } catch (error) {
         logger.error(error);
         next(error);
@@ -117,16 +126,24 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
         const ownerId = req.payload?.id as string;
         const owner = await findUserById(ownerId) as IUser;
 
-        const { role, page, sortKey, username } = req.query;
+        const { role, pageNo, pageLimit, sortKey, username } = req.query;
         if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
         const query: userQuery = role ? { role } : {};
         const sort: UserSortArgs = getUserSortArgs(sortKey);
 
-        const users = await fetchUsers(Number(page), query, sort, username);
+        const fetchResult = await fetchUsers(Number(pageNo), Number(pageLimit), query, sort, username);
 
-        const responseMessage = users ? 'User Data Fetched Successfully' : 'No Users found to show';
-        res.status(200).json(await sendCustomResponse(responseMessage, users));
+        const responseMessage = fetchResult ? 'User Data Fetched Successfully' : 'No Users found to show';
+        let PageNationFeilds;
+        if (fetchResult) {
+            const { data, ...pageInfo } = fetchResult
+            PageNationFeilds = pagenate(pageInfo, req.originalUrl);
+        }
+
+        res.status(200).json({
+            success: true, responseMessage, ...fetchResult, ...PageNationFeilds
+        });
     } catch (error) {
         logger.info(error);
         next(error);

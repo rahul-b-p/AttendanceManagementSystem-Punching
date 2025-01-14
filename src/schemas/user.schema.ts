@@ -81,7 +81,8 @@ export const updateUserSchema = z
 
 export const userFilterQuerySchema = z
     .object({
-        page: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+        pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+        pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
         role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" }).optional(),
         sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional()
     })
@@ -91,8 +92,9 @@ export const userFilterQuerySchema = z
 
 export const userSearchFilterQuerySchema = z
     .object({
-        page: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+        pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+        pageLimit: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
         role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" }).optional(),
         sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional(),
-        username:z.string().optional()
+        username: z.string().optional()
     })

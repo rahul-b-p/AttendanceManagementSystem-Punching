@@ -2,7 +2,7 @@ import { string } from "zod";
 import { Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
-import { IUserData, UserInsertArgs, userQuery, UserSearchQuery, UserToShow, UserUpdateArgs } from "../types";
+import { IUserData, UserFetchResult, UserInsertArgs, userQuery, UserSearchQuery, UserToShow, UserUpdateArgs } from "../types";
 import { logger } from "../utils";
 
 
@@ -82,15 +82,23 @@ export const findUserById = async (_id: string): Promise<IUser | null> => {
     }
 }
 
-export const fetchUsers = async (page: number, query: userQuery, sort: UserSortArgs, username?: string): Promise<UserToShow[] | null> => {
+export const fetchUsers = async (page: number, limit: number, query: userQuery, sort: UserSortArgs, username?: string): Promise<UserFetchResult | null> => {
     try {
-        const limit = 10;
         const skip = (page - 1) * limit;
 
         const matchFilter: any = { ...query };
         if (username) {
             matchFilter.username = { $regex: username, $options: "i" };
         }
+
+        const totalFilter = await User.aggregate([
+            { $match: matchFilter },
+            {
+                $count: 'totalCount'  // Count all documents matching the filter
+            }
+        ]);
+
+        const totalItems = totalFilter.length > 0 ? totalFilter[0].totalCount : 0;
 
         const users: UserToShow[] = await User.aggregate([
             { $match: matchFilter },
@@ -109,7 +117,16 @@ export const fetchUsers = async (page: number, query: userQuery, sort: UserSortA
             },
         ]);
 
-        return users.length > 0 ? users : null;
+        const totalPages = Math.ceil(totalItems / limit);
+        const fetchResult: UserFetchResult = {
+            page,
+            pageSize: limit,
+            totalPages,
+            totalItems,
+            data: users
+        }
+
+        return users.length > 0 ? fetchResult : null;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
@@ -131,7 +148,7 @@ export const getUserData = async (_id: string): Promise<UserToShow> => {
     try {
         const user = await User.findById(_id, { password: 0, refreshToken: 0, __v: 0 }).lean();
         return user as UserToShow;
-    } catch (error:any) {
+    } catch (error: any) {
         logger.error
         throw new Error(error.message);
     }
