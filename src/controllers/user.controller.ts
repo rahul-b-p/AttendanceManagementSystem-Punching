@@ -4,7 +4,7 @@ import { getUserSortArgs, logger, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
-import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData } from "../services";
+import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData, sendUserCreationNotification } from "../services";
 import { Roles, UserSortArgs } from "../enums";
 
 
@@ -26,6 +26,10 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
         if (!isUniqueEmail) return next(new ConflictError("User already exists!"));
 
         const newUser = await insertUser(req.body);
+        sendUserCreationNotification(newUser).catch((error) => {
+            console.error("Error sending email:", error);
+        });
+        
         res.status(201).json(await sendCustomResponse("New User Created Successfully", newUser));
     } catch (error) {
         logger.error(error);
