@@ -4,7 +4,7 @@ import { getUserSortArgs, logger, pagenate, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId } from "../validators";
-import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData, sendUserCreationNotification } from "../services";
+import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData, sendUserCreationNotification, sendUserUpdationNotification } from "../services";
 import { Roles, UserSortArgs } from "../enums";
 
 
@@ -81,18 +81,36 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         if (existingUser.role == Roles.admin && owner.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
 
         const { email } = req.body;
+        let userUpdateArgs;
+        let emailAdress;
+        let responseMessage;
         if (email) {
             const isValidEmail = await checkEmailValidity(email);
             if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
 
+            if (email == existingUser.email) return next(new BadRequestError("The email address you entered is already your current email."));
+
             const isUniqueEmail = await validateEmailUniqueness(email);
             if (!isUniqueEmail) return next(new ConflictError("User already exists!"));
+            userUpdateArgs = { $set: { ...req.body, verified: false }, $unset: { refreshToken: 1 } } as UserUpdateArgs;
+            emailAdress = [email, existingUser.email] as string[];
+            responseMessage = "your account has been updated, need Email verification" as string;
+        }
+        else {
+            userUpdateArgs = { $set: req.body } as UserUpdateArgs;
+            emailAdress = [] as string[];
+            responseMessage = "Your account has been updated successfully" as string;
+        }
+        const updatedUser = await updateUserById(id, userUpdateArgs);
+        if (updatedUser) {
+            Promise.all(emailAdress.map((adress) => {
+                sendUserUpdationNotification(adress, updatedUser, existingUser.email)
+            })).catch((err) => {
+                logger.error(err);
+            })
         }
 
-        const userUpdateArgs: UserUpdateArgs = { $set: req.body };
-        const updatedUser = await updateUserById(id, userUpdateArgs);
-
-        res.status(200).json(await sendCustomResponse("User Updated succesfully", updatedUser));
+        res.status(200).json({ ...await sendCustomResponse(responseMessage, updatedUser), verifyLink: email ? '/auth/login' : undefined });
 
     } catch (error) {
         logger.error(error);

@@ -31,9 +31,9 @@ const userSchema = new Schema<IUser>({
         type: String,
         required: false,
     },
-    isFirstLogin: {
+    verified: {
         type: Boolean,
-        default: true,
+        default: false,
         required: true
     },
     createAt: {

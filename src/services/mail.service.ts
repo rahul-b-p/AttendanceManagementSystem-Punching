@@ -91,7 +91,38 @@ export const sendUserCreationNotification = async (user: IUserData): Promise<Sen
 
         return await sendEmail(emailOptions);
 
-    } catch (error:any) {
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const sendUserUpdationNotification = async (to: string, updatedUser: IUserData, existingEmail?: string,): Promise<SentMessageInfo> => {
+    try {
+        const emailContent = `
+    <b>Hi ${updatedUser.username},</b>
+
+    <p>Your Email has been changed from ${existingEmail} to ${updatedUser.email}!</p>
+    <p>Please verify your account by following link</p>
+    <a href"">link</a>
+    <p>Once you’ve completed the verification, you’ll have full access to the system. If you need any assistance, don’t hesitate to contact our support team.</p>
+
+    <p>We’re excited to have you with us. Welcome aboard!<p>
+
+    <p>Best regards,<p>
+    <p><b>[Your Company Name]</b></p>
+    <p><b>[Support Contact Information]</b></p>
+    `
+
+        const emailOptions: EmailOptions = {
+            to,
+            subject: "Your Account email has been edited",
+            html: emailContent,
+            text: emailContent
+        }
+
+        return await sendEmail(emailOptions);
+    } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
     }
