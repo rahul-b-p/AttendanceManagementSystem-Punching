@@ -4,7 +4,7 @@ import { AuthenticationError, InternalServerError, NotFoundError } from "../erro
 import { comparePassword, sendCustomResponse } from "../utils";
 import { signAccessToken, signRefreshToken } from "../jwt";
 import { UserAuthBody, UserLoginOtpReq, UserPasswordResetReq, UserUpdateArgs } from "../types";
-import { blacklistToken, findUserByEmail, findUserById, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp } from "../services";
+import { blacklistToken, findUserByEmail, findUserById, getUserData, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 
 
@@ -18,10 +18,9 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
         const existingUser = await findUserByEmail(email);
         if (!existingUser) return next(new NotFoundError('User not found with given email id'));
 
-        const isVerifiedPassword = await comparePassword(password, existingUser.password);
-        if (!isVerifiedPassword) return next(new AuthenticationError('Invalid Password'));
 
-        if (existingUser.isFirstLogin) {
+
+        if (!existingUser.verified || !existingUser.password) {
 
             const sendMailInfo = await sendOtpForInitialLogin(existingUser._id.toString(), existingUser.email);
             logger.info(sendMailInfo);
@@ -34,14 +33,19 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
             return;
         }
 
+        const isVerifiedPassword = await comparePassword(password, existingUser.password);
+        if (!isVerifiedPassword) return next(new AuthenticationError('Invalid Password'));
+
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
         const updateRefreshToken = { $set: { refreshToken: RefreshToken } };
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
+        const UserData = await getUserData(existingUser._id.toString());
+
         res.statusMessage = "Login Successful";
-        res.status(200).json(await sendCustomResponse('Login Successful', { AccessToken, RefreshToken }));
+        res.status(200).json({ ...await sendCustomResponse('Login Successful', UserData), AccessToken, RefreshToken });
     } catch (error) {
         logger.error(error);
         next(new InternalServerError())
@@ -107,11 +111,13 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserLoginOtp
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
 
-        const updateRefreshToken: UserUpdateBody = { $set: { refreshToken: RefreshToken, isFirstLogin: false } };
+        const updateRefreshToken: UserUpdateArgs = { $set: { refreshToken: RefreshToken, verified: false } };
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
+        const UserData = await getUserData(existingUser._id.toString());
+
         res.statusMessage = "Login Successful";
-        res.status(200).json(await sendCustomResponse('Login Successful', { AccessToken, RefreshToken }));
+        res.status(200).json({ ...await sendCustomResponse('Login Successful', UserData), AccessToken, RefreshToken });
 
     } catch (error: any) {
         logger.error(error);
@@ -152,7 +158,7 @@ export const resetPassword = async (req: Request<{}, any, UserPasswordResetReq>,
 
 
         const hashedPass = await hashPassword(password);
-        const updateBody: UserUpdateBody = { $set: { password: hashedPass } };
+        const updateBody: UserUpdateArgs = { $set: { password: hashedPass } };
 
         const updatedUser = await updateUserById(existingUser._id.toString(), updateBody);
         res.status(200).json(await sendCustomResponse('Password updated successfully'));
