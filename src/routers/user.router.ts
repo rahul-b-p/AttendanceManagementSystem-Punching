@@ -19,3 +19,5 @@ router.delete('/:id', roleAuth(Roles.admin, Roles.manager), userController.delet
 router.get('/filter', roleAuth(Roles.admin, Roles.manager), validateReqQuery(userSearchFilterQuerySchema), userController.searchAndFilterUser);
 
 router.get('/:id', roleAuth(Roles.admin, Roles.manager), userController.readUserDataByAdmin);
+
+router.put('/', validateReqBody(updateUserSchema), userController.updateProfile);

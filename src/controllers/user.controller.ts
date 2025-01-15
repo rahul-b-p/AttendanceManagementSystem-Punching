@@ -186,3 +186,48 @@ export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: st
         next(error);
     }
 }
+
+export const updateProfile = async (req: customRequestWithPayload<{}, any, UserUpdateBody>, res: Response, next: NextFunction) => {
+    try {
+        const id = req.payload?.id as string;
+        const existingUser = await findUserById(id) as IUser;
+
+        const { role, email } = req.body;
+        if (role && existingUser.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+
+        let userUpdateArgs;
+        let emailAdress;
+        let responseMessage;
+        if (email) {
+            const isValidEmail = await checkEmailValidity(email);
+            if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
+
+            if (email == existingUser.email) return next(new BadRequestError("The email address you entered is already your current email."));
+
+            const isUniqueEmail = await validateEmailUniqueness(email);
+            if (!isUniqueEmail) return next(new ConflictError("User already exists!"));
+            userUpdateArgs = { $set: { ...req.body, verified: false }, $unset: { refreshToken: 1 } } as UserUpdateArgs;
+            emailAdress = [email, existingUser.email] as string[];
+            responseMessage = "your account has been updated, need Email verification" as string;
+        }
+        else {
+            userUpdateArgs = { $set: req.body } as UserUpdateArgs;
+            emailAdress = [] as string[];
+            responseMessage = "Your account has been updated successfully" as string;
+        }
+        const updatedUser = await updateUserById(id, userUpdateArgs);
+        if (updatedUser) {
+            Promise.all(emailAdress.map((adress) => {
+                sendUserUpdationNotification(adress, updatedUser, existingUser.email)
+            })).catch((err) => {
+                logger.error(err);
+            })
+        }
+
+        res.status(200).json({ ...await sendCustomResponse(responseMessage, updatedUser), verifyLink: email ? '/auth/login' : undefined });
+
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+}
