@@ -1,11 +1,12 @@
 import { NextFunction, Response } from "express";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../errors";
-import { logger } from "../utils";
+import { logger, getPermissionSet, getAction } from "../utils";
 import { customRequestWithPayload } from "../interfaces";
-import { isValidObjectId } from "../validators";
+import { isValidObjectId, permissionValidator } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
 import { blacklistToken, checkRefreshTokenExistsById, findUserById, isTokenBlacklisted } from "../services";
 import { Roles } from "../enums";
+
 
 
 
@@ -60,7 +61,14 @@ export const roleAuth = (...allowedRole: Roles[]) => {
             const existingUser = await findUserById(id);
             if (!existingUser) throw new Error('Losses the UserId or User Data of an authorized Request! ')
 
-            if (!allowedRole.includes(existingUser.role)) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+            const { role } = existingUser;
+            if (!Object.values(Roles).includes(role as Roles)) {
+                const permissionset = getPermissionSet(...allowedRole);
+                const requiredAction = getAction(req.method);
+                const isPermitted = await permissionValidator(permissionset, role, requiredAction);
+                if (!isPermitted) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+            }
+            else if (!allowedRole.includes(role as Roles)) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
 
             next();
         } catch (error) {
