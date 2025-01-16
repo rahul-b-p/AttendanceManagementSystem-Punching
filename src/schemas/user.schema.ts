@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Roles, UserSortKeys } from "../enums";
+import {  UserSortKeys } from "../enums";
 import { phoneSchema } from "./phone.schema";
 import { passwordSchema } from "./password.schema";
 import { otpSchema } from "./otp.schema";
@@ -17,9 +17,9 @@ export const createUserSchema = z
             .email({ message: "Invalid Email Format" }),
         phone: phoneSchema,
         role: z
-            .nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" })
+            .string()
     })
-    .strict();
+    .strict({ message: "Role is required." });
 
 
 
@@ -68,7 +68,7 @@ export const updateUserSchema = z
         phone: phoneSchema
             .optional(),
         role: z
-            .nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" })
+            .string()
             .optional()
     })
     .strict()
@@ -83,7 +83,7 @@ export const userFilterQuerySchema = z
     .object({
         pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
         pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
-        role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" }).optional(),
+        role: z.string().optional(),
         sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional()
     })
     .strict();
@@ -94,7 +94,7 @@ export const userSearchFilterQuerySchema = z
     .object({
         pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
         pageLimit: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
-        role: z.nativeEnum(Roles, { message: "role should be 'admin', 'manager' or 'employee'" }).optional(),
+        role: z.string().optional(),
         sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional(),
         username: z.string().optional()
     })

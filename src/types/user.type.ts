@@ -1,7 +1,6 @@
 import { Types } from "mongoose";
-import { Roles, UserSortKeys } from "../enums";
+import { UserSortKeys } from "../enums";
 import { IUser } from "../interfaces";
-import { number } from "zod";
 import { PageInfo } from "./page.type";
 
 export type UserAuthBody = {
@@ -13,7 +12,7 @@ export type UserInsertArgs = {
     username: string;
     email: string;
     phone: string;
-    role: Roles;
+    role: string;
 };
 
 export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'verified' | '__v'>;
@@ -43,7 +42,7 @@ export type UserUpdateBody = Partial<UserInsertArgs>;
 export type UserFilterQuery = {
     pageNo: string;
     pageLimit: string;
-    role?: Roles;
+    role?: string;
     sortKey?: UserSortKeys;
 };
 

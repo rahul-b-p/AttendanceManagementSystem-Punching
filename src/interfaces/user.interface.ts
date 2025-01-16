@@ -1,5 +1,4 @@
 import { Document, Types } from "mongoose";
-import { Roles } from "../enums";
 
 
 
@@ -9,7 +8,7 @@ export interface IUser extends Document {
     email: string;
     phone: string;
     password?: string;
-    role: Roles;
+    role: string;
     refreshToken?: string;
     verified: boolean;
     createAt: Date;

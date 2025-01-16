@@ -3,7 +3,7 @@ import { BadRequestError, ConflictError, ForbiddenError, InternalServerError, No
 import { getUserSortArgs, logger, pagenate, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
-import { checkEmailValidity, isValidObjectId } from "../validators";
+import { checkEmailValidity, isValidObjectId, validateRole } from "../validators";
 import { deleteUserById, findUserById, fetchUsers, insertUser, updateUserById, validateEmailUniqueness, getUserData, sendUserCreationNotification, sendUserUpdationNotification } from "../services";
 import { Roles, UserSortArgs } from "../enums";
 
@@ -14,6 +14,9 @@ import { Roles, UserSortArgs } from "../enums";
 export const createUser = async (req: customRequestWithPayload<{}, any, UserInsertArgs>, res: Response, next: NextFunction) => {
     try {
         const { email, role } = req.body;
+
+        const isValidRole = await validateRole(role);
+        if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
 
         const ownerId = req.payload?.id as string;
         const owner = await findUserById(ownerId) as IUser;
@@ -43,6 +46,10 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
         const owner = await findUserById(ownerId) as IUser;
 
         const { role, pageNo, pageLimit, sortKey } = req.query;
+        if (role) {
+            const isValidRole = await validateRole(role);
+            if (!isValidRole) throw new BadRequestError("Invalid role provided!");
+        }
         if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
         const query: userQuery = role ? { role } : {};
@@ -69,6 +76,13 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
 
 export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: string }, any, UserUpdateBody>, res: Response, next: NextFunction) => {
     try {
+        const { email, role } = req.body;
+
+        if (role) {
+            const isValidRole = await validateRole(role);
+            if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+        }
+
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
         if (!isValidId) return next(new BadRequestError("Invalid User Id"));
@@ -80,7 +94,6 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         const owner = await findUserById(ownerId) as IUser;
         if (existingUser.role == Roles.admin && owner.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
 
-        const { email } = req.body;
         let userUpdateArgs;
         let emailAdress;
         let responseMessage;
@@ -145,6 +158,13 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
         const owner = await findUserById(ownerId) as IUser;
 
         const { role, pageNo, pageLimit, sortKey, username } = req.query;
+
+        if (role) {
+            const isValidRole = await validateRole(role);
+            if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+        }
+
+
         if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
         const query: userQuery = role ? { role } : {};
@@ -189,11 +209,18 @@ export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: st
 
 export const updateProfile = async (req: customRequestWithPayload<{}, any, UserUpdateBody>, res: Response, next: NextFunction) => {
     try {
+        const { role, email } = req.body;
         const id = req.payload?.id as string;
         const existingUser = await findUserById(id) as IUser;
 
-        const { role, email } = req.body;
-        if (role && existingUser.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+
+        if (role) {
+            const isValidRole = await validateRole(role);
+            if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+
+            if (existingUser.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+        }
+
 
         let userUpdateArgs;
         let emailAdress;

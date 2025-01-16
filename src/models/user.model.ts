@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import { Roles } from "../enums";
 import { IUser } from "../interfaces";
 import { hashPassword } from "../utils";
 
@@ -25,7 +24,6 @@ const userSchema = new Schema<IUser>({
     role: {
         type: String,
         required: true,
-        enum: Object.values(Roles)
     },
     refreshToken: {
         type: String,
