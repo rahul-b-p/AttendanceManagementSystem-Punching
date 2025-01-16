@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../errors";
-import { logger, getPermissionSet, getAction } from "../utils";
+import { logger, getPermissionSetFromDefaultRoles, getAction } from "../utils";
 import { customRequestWithPayload } from "../interfaces";
 import { isValidObjectId, permissionValidator } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
@@ -63,7 +63,7 @@ export const roleAuth = (...allowedRole: Roles[]) => {
 
             const { role } = existingUser;
             if (!Object.values(Roles).includes(role as Roles)) {
-                const permissionset = getPermissionSet(...allowedRole);
+                const permissionset = getPermissionSetFromDefaultRoles(...allowedRole);
                 const requiredAction = getAction(req.method);
                 const isPermitted = await permissionValidator(permissionset, role, requiredAction);
                 if (!isPermitted) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
