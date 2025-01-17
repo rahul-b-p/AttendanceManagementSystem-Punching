@@ -3,7 +3,7 @@ import { Adress, Location } from "../types";
 
 export interface IOffice extends Document {
     _id: Types.ObjectId;
-    name: string;
+    officeName: string;
     adress: Adress;
     location: Location;
     radius: number;

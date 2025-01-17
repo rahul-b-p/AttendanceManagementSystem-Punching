@@ -7,5 +7,15 @@ export type Adress = {
 
 export type Location = {
     latitude: number;
-    longtitude: number;
+    longitude: number;
+}
+type BaseOfficeFeilds = {
+    officeName: string;
+    radius: number;
+}
+export type CreateOfficeInputBody = Adress & Location & BaseOfficeFeilds;
+
+export type InsertOfficeArgs = BaseOfficeFeilds & {
+    adress: Adress;
+    location: Location;
 }

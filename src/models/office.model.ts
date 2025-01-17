@@ -6,7 +6,7 @@ import { IOffice } from "../interfaces";
 
 
 const officeSchema = new Schema<IOffice>({
-    name: {
+    officeName: {
         type: String,
         required: true
     },
@@ -33,7 +33,7 @@ const officeSchema = new Schema<IOffice>({
             type: Number,
             required: true
         },
-        longtitude: {
+        longitude: {
             type: Number,
             required: true
         }

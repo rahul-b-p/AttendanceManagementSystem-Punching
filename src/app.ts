@@ -3,7 +3,7 @@ import { createDefaultAdmin, logger } from './utils';
 import './config/envConfig';
 import { connectDB } from './database';
 import { accessTokenAuth, ErrorHandler, roleAuth } from './middlewares';
-import { authRouter, roleRouter, userRouter } from './routers';
+import { authRouter, officeRouter, roleRouter, userRouter } from './routers';
 import { Roles } from './enums';
 
 
@@ -18,6 +18,7 @@ app.use(express.json());
 app.use('/auth', authRouter);
 app.use('/user', accessTokenAuth, userRouter);
 app.use('/role', accessTokenAuth, roleAuth(Roles.admin), roleRouter);
+app.use('/office', accessTokenAuth, roleAuth(Roles.admin), officeRouter);
 app.use(ErrorHandler);
 
 const port = process.env.PORT || 3000;
