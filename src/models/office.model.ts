@@ -44,12 +44,14 @@ const officeSchema = new Schema<IOffice>({
     },
     managers: [
         {
-            type: mongoose.Schema.Types.ObjectId
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'users'
         }
     ],
     employees: [
         {
-            type: mongoose.Schema.Types.ObjectId
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'users'
         }
     ]
 }, {
@@ -66,7 +68,9 @@ const officeSchema = new Schema<IOffice>({
             return ret;
         }
     }
-})
+});
+
+officeSchema.index({ 'location.latitude': 1, 'location.longitude': 1 }, { unique: true });
 
 
 const Office = mongoose.model<IOffice>('offices', officeSchema);

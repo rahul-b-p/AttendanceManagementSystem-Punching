@@ -37,6 +37,10 @@ const userSchema = new Schema<IUser>({
     createAt: {
         type: Date,
         default: () => new Date()
+    },
+    officeId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'offices'
     }
 }, {
     toJSON: {
