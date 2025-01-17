@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.11.17",
     "mongoose": "^8.9.5",
+    "node-geocoder": "^4.4.1",
     "nodemailer": "^6.9.16",
     "winston": "^3.17.0",
     "zod": "^3.24.1"
@@ -28,6 +29,7 @@
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.5",
+    "@types/node-geocoder": "^4.2.6",
     "@types/nodemailer": "^6.4.17",
     "nodemon": "^3.1.9",
     "typescript": "^5.7.2"
