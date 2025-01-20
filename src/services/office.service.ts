@@ -1,7 +1,7 @@
 import { OfficeSortArgs } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
-import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery } from "../types";
+import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs } from "../types";
 import { logger } from "../utils";
 
 
@@ -77,6 +77,28 @@ export const fetchOffices = async (page: number, limit: number, query: officeQue
         };
 
         return offices.length > 0 ? fetchResult : null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
+    try {
+        return await Office.findById(_id);
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOfficeArgs) => {
+    try {
+        const updatedOffice = await Office.findByIdAndUpdate(_id, updateOfficeData, { new: true }).lean();
+
+        delete (updatedOffice as any).__v;
+
+        return updatedOffice;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

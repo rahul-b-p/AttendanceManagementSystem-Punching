@@ -19,7 +19,14 @@ type BaseOfficeFeilds = {
 }
 export type CreateOfficeInputBody = Adress & Location & BaseOfficeFeilds;
 
+export type updateOfficeInputBody = Partial<CreateOfficeInputBody>;
+
 export type InsertOfficeArgs = BaseOfficeFeilds & {
+    adress: Adress;
+    location: Location;
+}
+
+export type UpdateOfficeArgs = Partial<BaseOfficeFeilds> & {
     adress: Adress;
     location: Location;
 }

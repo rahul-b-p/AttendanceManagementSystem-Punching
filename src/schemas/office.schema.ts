@@ -24,3 +24,53 @@ export const officeFilterQuerySchema = z.object({
     state: z.string().optional(),
     sortKey: z.nativeEnum(OfficeSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional()
 }).strict();
+
+
+
+export const updateOfficeSchema = z.object({
+    street: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zip_code: z.string().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    officeName: z.string().optional(),
+    radius: z.number().optional(),
+}).strict()
+    .superRefine((data, ctx) => {
+        const addressFields: (keyof typeof data)[] = ["street", "city", "state", "zip_code"];
+        const locationFields: (keyof typeof data)[] = ["latitude", "longitude"];
+
+        const isAddressChanged = addressFields.some((field) => field in data && data[field] !== undefined);
+        const isLocationChanged = locationFields.some((field) => field in data && data[field] !== undefined);
+
+        if (isAddressChanged && (!data.latitude || !data.longitude)) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Latitude and longitude must be provided when any address field is updated (street, city, state, or zip_code).",
+                path: ["latitude", "longitude"],
+            });
+        }
+
+        if (isLocationChanged && (!data.street && !data.city && !data.state && !data.zip_code)) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Address fields (street, city, state, zip_code) must be updated when location (latitude or longitude) is modified.",
+                path: ["street", "city", "state", "zip_code"],
+            });
+        }
+    })
+    .refine(
+        (data) =>
+            data.officeName ||
+            data.street ||
+            data.city ||
+            data.state ||
+            data.zip_code ||
+            data.latitude ||
+            data.longitude ||
+            data.radius,
+        {
+            message: "At least one field is required for update.",
+        }
+    );
