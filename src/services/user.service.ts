@@ -106,6 +106,14 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
             { $skip: skip },
             { $limit: limit },
             {
+                $lookup: {
+                    from: 'offices',
+                    localField: 'officeId',
+                    foreignField: '_id',
+                    as: 'office',
+                }
+            },
+            {
                 $project: {
                     _id: 1,
                     username: 1,
@@ -113,6 +121,21 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
                     phone: 1,
                     role: 1,
                     createAt: 1,
+                    office:{
+                        _id:1,
+                        officeName:1,
+                        adress:{
+                            street:1,
+                            city:1,
+                            state:1,
+                            zip_code:1
+                        },
+                        location:{
+                            latitude:1,
+                            longitude:1
+                        },
+                        radius:1
+                    }
                 },
             },
         ]);

@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { UserSortKeys } from "../enums";
-import { IUser } from "../interfaces";
+import { IOffice, IUser } from "../interfaces";
 import { PageInfo } from "./page.type";
 
 export type UserAuthBody = {
@@ -21,7 +21,7 @@ export type UserUpdateArgs = {
     $set?: Partial<IUser>;
     $unset?: {
         refreshToken?: 1;
-        officeId?:1
+        officeId?: 1
     };
 };
 
@@ -53,6 +53,7 @@ export type userQuery = Partial<UserInsertArgs>;
 export type UserToShow = UserInsertArgs & {
     _id: Types.ObjectId;
     createAt: Date;
+    office?: IOffice;
 }
 
 export type UserSearchQuery = {
