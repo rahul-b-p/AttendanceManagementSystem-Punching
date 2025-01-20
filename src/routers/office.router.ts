@@ -12,3 +12,5 @@ router.post('/', validateReqBody(createOfficeSchema), officeController.createOff
 router.get('/', validateReqQuery(officeFilterQuerySchema), officeController.readOffices);
 
 router.put('/:id', validateReqBody(updateOfficeSchema), officeController.updateOffice);
+
+router.delete('/:id', officeController.deleteOffice);

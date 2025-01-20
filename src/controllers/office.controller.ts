@@ -4,7 +4,7 @@ import { Adress, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOffice
 import { isValidObjectId, validateAdressWithLocation } from "../validators";
 import { getOfficeSortArgs, logger, pagenate, sendCustomResponse } from "../utils";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors";
-import { fetchOffices, findOfficeById, insertOffice, updateOfficeById, validateLocationUniqueness } from "../services";
+import { deleteOfficeById, fetchOffices, findOfficeById, insertOffice, updateOfficeById, validateLocationUniqueness } from "../services";
 
 
 
@@ -105,6 +105,22 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
         const updatedOffice = await updateOfficeById(id, updateOfficeData);
 
         res.status(200).json(await sendCustomResponse("Office Updated Successfully", updatedOffice));
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+}
+
+export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
+
+        const isDeleted = await deleteOfficeById(id);
+        if (!isDeleted) throw new NotFoundError("Requested office not found!");
+
+        res.status(200).json(await sendCustomResponse("Office Deleted Successfully"));
     } catch (error) {
         logger.error(error);
         next(error);

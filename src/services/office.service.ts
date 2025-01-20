@@ -92,13 +92,23 @@ export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
     }
 }
 
-export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOfficeArgs) => {
+export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOfficeArgs): Promise<IOffice | null> => {
     try {
         const updatedOffice = await Office.findByIdAndUpdate(_id, updateOfficeData, { new: true }).lean();
 
         delete (updatedOffice as any).__v;
 
         return updatedOffice;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const deleteOfficeById = async (_id: string) => {
+    try {
+        const deletedOffice = await Office.findByIdAndDelete(_id);
+        return deletedOffice !==null
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
