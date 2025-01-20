@@ -21,6 +21,7 @@ export type UserUpdateArgs = {
     $set?: Partial<IUser>;
     $unset?: {
         refreshToken?: 1;
+        officeId?:1
     };
 };
 

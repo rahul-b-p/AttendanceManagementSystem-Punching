@@ -77,7 +77,7 @@ export const updateOfficeSchema = z.object({
 
 
 
-export const assignTOOfficeSchema = z.object({
+export const officeUserActionSchema = z.object({
     manager: z.string().regex(objectIdRegex, "Invalid ObjectId").optional(),
     employee: z.string().regex(objectIdRegex, "Invalid ObjectId").optional()
 }).strict()

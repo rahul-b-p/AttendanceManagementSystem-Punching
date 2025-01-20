@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { OfficeSortArgs } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
-import { AssignToOfficeBody, InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs } from "../types";
+import { OfficeUserActionPayload, InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs } from "../types";
 import { logger } from "../utils";
 import { updateUserById } from "./user.service";
 import { json } from "stream/consumers";
@@ -108,7 +108,7 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
     }
 }
 
-export const deleteOfficeById = async (_id: string) => {
+export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
         const deletedOffice = await Office.findByIdAndDelete(_id);
         return deletedOffice !== null
@@ -118,7 +118,7 @@ export const deleteOfficeById = async (_id: string) => {
     }
 }
 
-export const assignToOfficeById = async (_id: string, user: AssignToOfficeBody) => {
+export const setUserToOfficeById = async (_id: string, user: OfficeUserActionPayload): Promise<IOffice | null> => {
     try {
         if (!user.manager && !user.employee) {
             throw new Error('At least one of manager or employee must be provided.');
@@ -126,10 +126,10 @@ export const assignToOfficeById = async (_id: string, user: AssignToOfficeBody) 
 
         const updateObject: any = {};
         if (user.manager) {
-            updateObject.managers = { $addToSet: user.manager };
+            updateObject.managers = user.manager;
         }
         if (user.employee) {
-            updateObject.employees = user.employee
+            updateObject.employees = user.employee;
         }
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {
@@ -138,6 +138,37 @@ export const assignToOfficeById = async (_id: string, user: AssignToOfficeBody) 
 
         await Promise.all(Object.values(user).map((userId) => {
             updateUserById(userId, { $set: { officeId: new Types.ObjectId(_id) } });
+        }));
+
+        delete (updatedOffice as any).__v;
+        return updatedOffice;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+
+export const unsetUserFromOfficeById = async (_id: string, user: OfficeUserActionPayload): Promise<IOffice | null> => {
+    try {
+        if (!user.manager && !user.employee) {
+            throw new Error('At least one of manager or employee must be provided.');
+        }
+
+        const updateObject: any = {};
+        if (user.manager) {
+            updateObject.managers = user.manager;
+        }
+        if (user.employee) {
+            updateObject.employees = user.employee;
+        }
+
+        const updatedOffice = await Office.findByIdAndUpdate(_id, {
+            $pull: updateObject,
+        }, { new: true });
+
+        await Promise.all(Object.values(user).map((userId) => {
+            updateUserById(userId, { $unset: { officeId: 1 } });
         }));
 
         delete (updatedOffice as any).__v;

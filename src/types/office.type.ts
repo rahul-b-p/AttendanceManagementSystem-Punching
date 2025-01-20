@@ -48,7 +48,7 @@ export type OfficeFilterBody = {
     sortKey?: OfficeSortKeys;
 }
 
-export type AssignToOfficeBody = {
+export type OfficeUserActionPayload = {
     manager?: string;
     employee?: string;
 }
