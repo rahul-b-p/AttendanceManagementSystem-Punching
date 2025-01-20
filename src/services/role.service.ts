@@ -1,5 +1,5 @@
 import { Roles } from "../enums";
-import { CustomRolePermission, ICustomRole } from "../interfaces";
+import { ICustomRole } from "../interfaces";
 import { CustomRole, User } from "../models"
 import { InsertRoleArgs, RolesFetchResult, UpdateRoleArgs } from "../types";
 import { formatPermissionSetForDB, logger } from "../utils";

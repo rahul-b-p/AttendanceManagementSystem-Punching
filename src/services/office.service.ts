@@ -1,8 +1,11 @@
+import { Types } from "mongoose";
 import { OfficeSortArgs } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
-import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs } from "../types";
+import { AssignToOfficeBody, InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs } from "../types";
 import { logger } from "../utils";
+import { updateUserById } from "./user.service";
+import { json } from "stream/consumers";
 
 
 export const validateLocationUniqueness = async (location: Location): Promise<Boolean> => {
@@ -108,7 +111,37 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
 export const deleteOfficeById = async (_id: string) => {
     try {
         const deletedOffice = await Office.findByIdAndDelete(_id);
-        return deletedOffice !==null
+        return deletedOffice !== null
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const assignToOfficeById = async (_id: string, user: AssignToOfficeBody) => {
+    try {
+        if (!user.manager && !user.employee) {
+            throw new Error('At least one of manager or employee must be provided.');
+        }
+
+        const updateObject: any = {};
+        if (user.manager) {
+            updateObject.managers = { $addToSet: user.manager };
+        }
+        if (user.employee) {
+            updateObject.employees = user.employee
+        }
+
+        const updatedOffice = await Office.findByIdAndUpdate(_id, {
+            $addToSet: updateObject,
+        }, { new: true });
+
+        await Promise.all(Object.values(user).map((userId) => {
+            updateUserById(userId, { $set: { officeId: new Types.ObjectId(_id) } });
+        }));
+
+        delete (updatedOffice as any).__v;
+        return updatedOffice;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

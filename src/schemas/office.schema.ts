@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pageNumberRegex } from "../utils";
+import { objectIdRegex, pageNumberRegex } from "../utils";
 import { OfficeSortKeys } from "../enums";
 
 
@@ -73,4 +73,15 @@ export const updateOfficeSchema = z.object({
         {
             message: "At least one field is required for update.",
         }
+    );
+
+
+
+export const assignTOOfficeSchema = z.object({
+    manager: z.string().regex(objectIdRegex, "Invalid ObjectId").optional(),
+    employee: z.string().regex(objectIdRegex, "Invalid ObjectId").optional()
+}).strict()
+    .refine(data =>
+        data.employee || data.manager,
+        { message: "any of the field should be require to assign a user in office" }
     );

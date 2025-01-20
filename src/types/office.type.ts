@@ -47,3 +47,8 @@ export type OfficeFilterBody = {
     city?: string;
     sortKey?: OfficeSortKeys;
 }
+
+export type AssignToOfficeBody = {
+    manager?: string;
+    employee?: string;
+}
