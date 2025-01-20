@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { OfficeSortArgs } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
-import { OfficeUserActionPayload, InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs } from "../types";
+import { OfficeUserActionPayload, InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData } from "../types";
 import { logger } from "../utils";
 import { updateUserById } from "./user.service";
 import { json } from "stream/consumers";
@@ -32,7 +32,7 @@ export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffic
     }
 }
 
-export const fetchOffices = async (page: number, limit: number, query: officeQuery, sort: OfficeSortArgs) => {
+export const fetchOffices = async (page: number, limit: number, query: officeQuery, sort: OfficeSortArgs): Promise<OfficeFetchResult | null> => {
     try {
         const skip = (page - 1) * limit;
 
@@ -51,24 +51,55 @@ export const fetchOffices = async (page: number, limit: number, query: officeQue
 
         const totalItems = totalFilter.length > 0 ? totalFilter[0].totalCount : 0;
 
-        const offices: IOffice[] = await Office.aggregate([
+        const offices: OfficeWithUserData[] = await Office.aggregate([
             { $match: matchFilter },
             { $sort: JSON.parse(sort) },
             { $skip: skip },
             { $limit: limit },
             {
+                $lookup: {
+                    from: 'users',
+                    localField: 'managers',
+                    foreignField: '_id',
+                    as: 'managers',
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'employees',
+                    foreignField: '_id',
+                    as: 'employees',
+                },
+            },
+            {
                 $project: {
                     _id: 1,
                     officeName: 1,
-                    adress: 1,
+                    address: 1,
                     location: 1,
                     radius: 1,
-                    managers: 1,
-                    employees: 1,
+                    managers: {
+                        _id: 1,
+                        username: 1,
+                        email: 1,
+                        phone: 1,
+                        role: 1,
+                        verified: 1
+                    },
+                    employees: {
+                        _id: 1,
+                        username: 1,
+                        email: 1,
+                        phone: 1,
+                        role: 1,
+                        verified: 1
+                    },
                     createdAt: 1,
                 },
             },
         ]);
+
 
         const totalPages = Math.ceil(totalItems / limit);
         const fetchResult: OfficeFetchResult = {
@@ -147,7 +178,6 @@ export const setUserToOfficeById = async (_id: string, user: OfficeUserActionPay
         throw new Error(error.message);
     }
 }
-
 
 export const unsetUserFromOfficeById = async (_id: string, user: OfficeUserActionPayload): Promise<IOffice | null> => {
     try {

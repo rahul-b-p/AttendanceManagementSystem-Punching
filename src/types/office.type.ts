@@ -1,6 +1,8 @@
+import { Types } from "mongoose";
 import { OfficeSortKeys } from "../enums";
 import { IOffice } from "../interfaces";
 import { PageInfo } from "./page.type";
+import { UserToShow } from "./user.type";
 
 export type Adress = {
     street: string;
@@ -37,7 +39,7 @@ export type officeQuery = {
 }
 
 export type OfficeFetchResult = PageInfo & {
-    data: IOffice[];
+    data: OfficeWithUserData[];
 }
 
 export type OfficeFilterBody = {
@@ -51,4 +53,9 @@ export type OfficeFilterBody = {
 export type OfficeUserActionPayload = {
     manager?: string;
     employee?: string;
+}
+
+export type OfficeWithUserData = Omit<IOffice, ' managers' | 'employees'> & {
+    managers: UserToShow[],
+    employees: UserToShow[]
 }
