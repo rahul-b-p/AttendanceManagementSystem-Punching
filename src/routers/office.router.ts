@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { validateReqBody } from "../middlewares";
-import { createOfficeSchema } from "../schemas";
+import { validateReqBody, validateReqQuery } from "../middlewares";
+import { createOfficeSchema, officeFilterQuerySchema } from "../schemas";
 import { officeController } from "../controllers";
 
 
@@ -8,3 +8,5 @@ import { officeController } from "../controllers";
 export const router = Router();
 
 router.post('/', validateReqBody(createOfficeSchema), officeController.createOffice);
+
+router.get('/', validateReqQuery(officeFilterQuerySchema), officeController.readOffices);
