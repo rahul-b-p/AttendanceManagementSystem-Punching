@@ -5,3 +5,4 @@ export * from './blacklist.interface';
 export * from './otp.interface';
 export * from './role.interface';
 export * from './office.interface';
+export * from './attendance.interface';
