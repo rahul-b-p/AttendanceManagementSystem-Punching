@@ -50,11 +50,6 @@ export type OfficeFilterBody = {
     sortKey?: OfficeSortKeys;
 }
 
-export type OfficeUserActionPayload = {
-    manager?: string;
-    employee?: string;
-}
-
 export type OfficeWithUserData = Omit<IOffice, ' managers' | 'employees'> & {
     managers: UserToShow[],
     employees: UserToShow[]

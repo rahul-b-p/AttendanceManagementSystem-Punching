@@ -16,6 +16,6 @@ router.put('/:id', roleAuth(Roles.admin), validateReqBody(updateOfficeSchema), o
 
 router.delete('/:id', roleAuth(Roles.admin), officeController.deleteOffice);
 
-router.put('/assign/:officeId', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.assignToOffice);
+router.put('/assign/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.assignToOffice);
 
-router.put('/remove/:officeId', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.removeFromOffice);
+router.put('/remove/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.removeFromOffice);

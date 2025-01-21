@@ -1,8 +1,8 @@
 import { Types } from "mongoose";
-import { OfficeSortArgs } from "../enums";
+import { OfficeSortArgs, Roles } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
-import { OfficeUserActionPayload, InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData } from "../types";
+import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData } from "../types";
 import { logger } from "../utils";
 import { updateUserById } from "./user.service";
 import { json } from "stream/consumers";
@@ -149,27 +149,26 @@ export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     }
 }
 
-export const setUserToOfficeById = async (_id: string, user: OfficeUserActionPayload): Promise<IOffice | null> => {
+export const setUserToOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
     try {
-        if (!user.manager && !user.employee) {
-            throw new Error('At least one of manager or employee must be provided.');
+        if (!userId) {
+            throw new Error('UserId must be provided.');
         }
 
         const updateObject: any = {};
-        if (user.manager) {
-            updateObject.managers = user.manager;
+        if (role == Roles.manager) {
+            updateObject.managers = userId;
         }
-        if (user.employee) {
-            updateObject.employees = user.employee;
+        else if (role == Roles.employee) {
+            updateObject.employees = userId;
         }
+        else throw new Error(`Can only assign manger or employee to an office model`)
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {
             $addToSet: updateObject,
         }, { new: true });
 
-        await Promise.all(Object.values(user).map((userId) => {
-            updateUserById(userId, { $set: { officeId: new Types.ObjectId(_id) } });
-        }));
+        await updateUserById(userId, { $set: { officeId: new Types.ObjectId(_id) } });
 
         delete (updatedOffice as any).__v;
         return updatedOffice;
@@ -179,27 +178,25 @@ export const setUserToOfficeById = async (_id: string, user: OfficeUserActionPay
     }
 }
 
-export const unsetUserFromOfficeById = async (_id: string, user: OfficeUserActionPayload): Promise<IOffice | null> => {
+export const unsetUserFromOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
     try {
-        if (!user.manager && !user.employee) {
-            throw new Error('At least one of manager or employee must be provided.');
-        }
+        if (!userId) throw new Error('UserId must be provided.');
 
         const updateObject: any = {};
-        if (user.manager) {
-            updateObject.managers = user.manager;
+        if (role == Roles.manager) {
+            updateObject.managers = userId;
         }
-        if (user.employee) {
-            updateObject.employees = user.employee;
+        else if (role == Roles.employee) {
+            updateObject.employees = userId;
         }
+        else throw new Error(`Can only assign manger or employee to an office model`)
+
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {
             $pull: updateObject,
         }, { new: true });
 
-        await Promise.all(Object.values(user).map((userId) => {
-            updateUserById(userId, { $unset: { officeId: 1 } });
-        }));
+        await updateUserById(userId, { $unset: { officeId: 1 } });
 
         delete (updatedOffice as any).__v;
         return updatedOffice;

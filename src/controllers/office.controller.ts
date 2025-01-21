@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IUser } from "../interfaces";
-import { Adress, OfficeUserActionPayload, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOfficeArgs, updateOfficeInputBody } from "../types";
-import { isValidObjectId, permissionValidator, validateAdressWithLocation, validateRole } from "../validators";
+import { Adress, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOfficeArgs, updateOfficeInputBody } from "../types";
+import { isValidObjectId, permissionValidator, validateAdressWithLocation } from "../validators";
 import { getAction, getOfficeSortArgs, getPermissionSetFromDefaultRoles, logger, pagenate, sendCustomResponse } from "../utils";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
 import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById } from "../services";
@@ -129,24 +129,21 @@ export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>
     }
 }
 
-export const assignToOffice = async (req: customRequestWithPayload<{ officeId: string }, any, OfficeUserActionPayload>, res: Response, next: NextFunction) => {
+export const assignToOffice = async (req: customRequestWithPayload<{ officeId: string, userId: string, role: Roles }>, res: Response, next: NextFunction) => {
     try {
-        const userId = req.payload?.id as string;
-        const exisingUser = await findUserById(userId) as IUser;
+        const ownerId = req.payload?.id as string;
+        const exisingUser = await findUserById(ownerId) as IUser;
 
-        const { officeId } = req.params;
-        logger.info(officeId)
+        const { officeId, userId, role } = req.params;
         const isValidId = isValidObjectId(officeId);
         if (!isValidId) throw new BadRequestError("Requested with an inValid office id");
 
         const existingOffice = await findOfficeById(officeId);
         if (!existingOffice) throw new NotFoundError("Requested Office not found!");
 
-        const { employee, manager } = req.body;
-
-        if (manager) {
-            const managerData = await findUserById(manager);
-            if (!managerData) throw new NotFoundError(`User with ID ${manager} not found to assign as an employee in the office`);
+        if (role == Roles.manager) {
+            const managerData = await findUserById(userId);
+            if (!managerData) throw new NotFoundError(`User with ID ${userId} not found to assign as an employee in the office`);
 
             if (managerData.officeId && managerData.officeId.toString() == officeId) throw new ConflictError("Requested user was alraedy added on this office");
             else if (managerData.officeId) throw new ConflictError("Requested user was already added in other office");
@@ -158,27 +155,28 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
                 if (!isPermitted) throw new ForbiddenError("Insufficent role privilleages");
             }
 
-            const managerPermit = getPermissionSetFromDefaultRoles(Roles.manager);
+            const managerPermit = getPermissionSetFromDefaultRoles(Roles.manager, Roles.admin);
 
             if (managerData.role !== Roles.manager) {
                 const permitted = await Promise.all(Object.values(Actions).map((item) => {
                     return permissionValidator(managerPermit, managerData.role, item);
                 }));
 
-                if (permitted.includes(false)) throw new ForbiddenError(`User with ID ${manager} do not permitted to assign as a manager!`);
+                if (permitted.includes(false)) throw new ForbiddenError(`User with ID ${userId} do not permitted to assign as a manager!`);
             }
         }
 
-        if (employee) {
-            const employeeData = await findUserById(employee);
-            if (!employeeData) throw new NotFoundError(`User with ID ${manager} not found to assign as an employee in the office`);
+        else if (role == Roles.employee) {
+            const employeeData = await findUserById(userId);
+            if (!employeeData) throw new NotFoundError(`User with ID ${userId} not found to assign as an employee in the office`);
 
             if (employeeData.officeId && employeeData.officeId.toString() == officeId) throw new ConflictError("Requested user was alraedy added on this office");
             else if (employeeData.officeId) throw new ConflictError("Requested user was already added in other office");
 
         }
+        else throw new BadRequestError("You can assign either  manager or employee to an office");
 
-        const assignedOfficeBody = await setUserToOfficeById(officeId, req.body);
+        const assignedOfficeBody = await setUserToOfficeById(officeId, userId, role);
 
         res.status(200).json(await sendCustomResponse("Successfully assigned into office", assignedOfficeBody));
     } catch (error) {
@@ -187,12 +185,12 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
     }
 }
 
-export const removeFromOffice = async (req: customRequestWithPayload<{ officeId: string }, any, OfficeUserActionPayload>, res: Response, next: NextFunction) => {
+export const removeFromOffice = async (req: customRequestWithPayload<{ officeId: string, userId: string, role: Roles }>, res: Response, next: NextFunction) => {
     try {
-        const userId = req.payload?.id as string;
-        const exisingUser = await findUserById(userId) as IUser;
+        const ownerId = req.payload?.id as string;
+        const exisingUser = await findUserById(ownerId) as IUser;
 
-        const { officeId } = req.params;
+        const { officeId, role, userId } = req.params;
         logger.info(officeId)
         const isValidId = isValidObjectId(officeId);
         if (!isValidId) throw new BadRequestError("Requested with an inValid office id");
@@ -200,10 +198,9 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
         const existingOffice = await findOfficeById(officeId);
         if (!existingOffice) throw new NotFoundError("Requested Office not found!");
 
-        const { employee, manager } = req.body;
 
-        if (manager) {
-            if (!existingOffice.managers.includes(new Types.ObjectId(manager))) throw new NotFoundError(`User with Id ${manager} not exists on the given office`);
+        if (role == Roles.manager) {
+            if (!existingOffice.managers.includes(new Types.ObjectId(userId))) throw new NotFoundError(`User with Id ${userId} not exists on the given office`);
 
             if (exisingUser.role !== Roles.admin) {
                 const permissionSet = getPermissionSetFromDefaultRoles(Roles.admin);
@@ -213,13 +210,13 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
             }
         }
 
-        if (employee) {
-            if (!existingOffice.employees.includes(new Types.ObjectId(employee))) throw new NotFoundError(`User with Id ${employee} not exists on the given office`);
+        if (role == Roles.employee) {
+            if (!existingOffice.employees.includes(new Types.ObjectId(userId))) throw new NotFoundError(`User with Id ${userId} not exists on the given office`);
         }
 
-        const userRemovedOfficeBody = await unsetUserFromOfficeById(officeId,req.body);
+        const userRemovedOfficeBody = await unsetUserFromOfficeById(officeId, userId, role);
 
-        res.status(200).json(await sendCustomResponse("Successfully removed user from the office",userRemovedOfficeBody));
+        res.status(200).json(await sendCustomResponse("Successfully removed user from the office", userRemovedOfficeBody));
     } catch (error) {
         logger.error(error);
         next(error);
