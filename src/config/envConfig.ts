@@ -16,7 +16,7 @@ const requiredEnvVariables = [
     'HOST_EMAIL_ID',
     'HOST_EMAIL_PASSKEY',
     'GEOCODING_API_KEY',
-    'APPROXIMATE_STREET_RADIUS'
+    'MIN_THRESHOLD'
 ];
 
 requiredEnvVariables.forEach((envVar) => {
@@ -38,4 +38,4 @@ export const REFRESH_TOKEN_EXPIRATION = process.env.REFRESH_TOKEN_EXPIRATION as 
 export const HOST_EMAIL_ID = process.env.HOST_EMAIL_ID as string;
 export const HOST_EMAIL_PASSKEY = process.env.HOST_EMAIL_PASSKEY as string;
 export const GEOCODING_API_KEY = process.env.GEOCODING_API_KEY as string;
-export const APPROXIMATE_STREET_RADIUS = process.env.APPROXIMATE_STREET_RADIUS as string;
+export const MIN_THRESHOLD = process.env.MIN_THRESHOLD as string;

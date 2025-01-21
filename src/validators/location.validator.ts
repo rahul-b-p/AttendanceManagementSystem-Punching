@@ -1,4 +1,4 @@
-import { APPROXIMATE_STREET_RADIUS } from "../config";
+import { MIN_THRESHOLD } from "../config";
 import { geocodeAddress } from "../services";
 import { Adress, Location } from "../types";
 import { logger } from "../utils";
@@ -14,7 +14,7 @@ export const validateAdressWithLocation = async (adress: Adress, providedLocatio
             return false;
         }
 
-        const threshold = Number(APPROXIMATE_STREET_RADIUS);
+        const threshold = Number(MIN_THRESHOLD);
 
         if (Math.abs(geoEncodedLocation.latitude - providedLocation.latitude) < threshold && Math.abs(geoEncodedLocation.longitude - providedLocation.longitude) < threshold) {
             return true;
