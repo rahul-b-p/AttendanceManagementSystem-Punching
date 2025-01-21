@@ -19,3 +19,7 @@ router.delete('/:id', roleAuth(Roles.admin), officeController.deleteOffice);
 router.put('/assign/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.assignToOffice);
 
 router.put('/remove/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.removeFromOffice);
+
+router.get('/trash', roleAuth(Roles.admin), validateReqQuery(officeFilterQuerySchema), officeController.fetchOfficeTrash);
+
+router.delete('/trash/:id', roleAuth(Roles.admin), officeController.deleteOfficeTrash);

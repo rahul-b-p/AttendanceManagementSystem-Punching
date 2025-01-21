@@ -4,8 +4,8 @@ import { Adress, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOffice
 import { isValidObjectId, permissionValidator, validateAdressWithLocation } from "../validators";
 import { getAction, getOfficeSortArgs, getPermissionSetFromDefaultRoles, logger, pagenate, sendCustomResponse } from "../utils";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById } from "../services";
-import { Actions, Roles } from "../enums";
+import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById, softDeleteOfficeById } from "../services";
+import { Actions, FetchType, Roles } from "../enums";
 import { Types } from "mongoose";
 
 
@@ -40,9 +40,9 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
         const sortArgs = getOfficeSortArgs(sortKey);
         const query = { city, state };
 
-        const fetchResult = await fetchOffices(Number(pageNo), Number(pageLimit), query, sortArgs);
+        const fetchResult = await fetchOffices(FetchType.active, Number(pageNo), Number(pageLimit), query, sortArgs);
 
-        const responseMessage = fetchResult ? 'User Data Fetched Successfully' : 'No Users found to show';
+        const responseMessage = fetchResult ? 'Office Data Fetched Successfully' : 'No Users found to show';
         let PageNationFeilds;
         if (fetchResult) {
             const { data, ...pageInfo } = fetchResult
@@ -119,7 +119,7 @@ export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>
         const isValidId = isValidObjectId(id);
         if (!isValidId) throw new BadRequestError("Invalid Id Provided");
 
-        const isDeleted = await deleteOfficeById(id);
+        const isDeleted = await softDeleteOfficeById(id);
         if (!isDeleted) throw new NotFoundError("Requested office not found!");
 
         res.status(200).json(await sendCustomResponse("Office Deleted Successfully"));
@@ -217,6 +217,47 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
         const userRemovedOfficeBody = await unsetUserFromOfficeById(officeId, userId, role);
 
         res.status(200).json(await sendCustomResponse("Successfully removed user from the office", userRemovedOfficeBody));
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+}
+
+export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, any, OfficeFilterBody>, res: Response, next: NextFunction) => {
+    try {
+        const { city, pageLimit, pageNo, sortKey, state } = req.query;
+
+        const sortArgs = getOfficeSortArgs(sortKey);
+        const query = { city, state };
+
+        const fetchResult = await fetchOffices(FetchType.trash, Number(pageNo), Number(pageLimit), query, sortArgs);
+
+        const responseMessage = fetchResult ? 'Office Trash Data Fetched Successfully' : 'Your trash is empty';
+        let PageNationFeilds;
+        if (fetchResult) {
+            const { data, ...pageInfo } = fetchResult
+            PageNationFeilds = pagenate(pageInfo, req.originalUrl);
+        }
+
+        res.status(200).json({
+            success: true, message: responseMessage, ...fetchResult, ...PageNationFeilds
+        });
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+}
+
+export const deleteOfficeTrash = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
+
+        const isDeleted = await deleteOfficeById(id);
+        if (!isDeleted) throw new NotFoundError("Requested office not found on trash!");
+
+        res.status(200).json(await sendCustomResponse("Office Data Deleted Successfully from trash"));
     } catch (error) {
         logger.error(error);
         next(error);

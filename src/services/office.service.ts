@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { OfficeSortArgs, Roles } from "../enums";
+import { FetchType, OfficeSortArgs, Roles } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
 import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData } from "../types";
@@ -31,11 +31,21 @@ export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffic
     }
 }
 
-export const fetchOffices = async (page: number, limit: number, query: officeQuery, sort: OfficeSortArgs): Promise<OfficeFetchResult | null> => {
+export const fetchOffices = async (fetchType: FetchType, page: number, limit: number, query: officeQuery, sort: OfficeSortArgs): Promise<OfficeFetchResult | null> => {
     try {
         const skip = (page - 1) * limit;
 
-        let matchFilter: any = { isDeleted: false };
+        let matchFilter: any = {};
+        switch (fetchType) {
+            case FetchType.active:
+                matchFilter["isDeleted"] = false;
+                break;
+
+            case FetchType.trash:
+                matchFilter["isDeleted"] = true;
+                break;
+        }
+
         if (query.city) {
             matchFilter["adress.city"] = query.city;
         }
@@ -138,7 +148,7 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
     }
 }
 
-export const deleteOfficeById = async (_id: string): Promise<boolean> => {
+export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
         const existingOffice = await findOfficeById(_id);
         if (!existingOffice || existingOffice.isDeleted) return false;
@@ -208,6 +218,19 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
 
         delete (updatedOffice as any).__v;
         return updatedOffice;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const deleteOfficeById = async (_id: string): Promise<boolean> => {
+    try {
+        const trashExistsOnId = await Office.exists({ _id, isDeleted: true });
+        if (!trashExistsOnId) return false;
+
+        const deletedOffice = await Office.findByIdAndDelete(_id);
+        return deletedOffice !== null;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
