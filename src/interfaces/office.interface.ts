@@ -9,4 +9,5 @@ export interface IOffice extends Document {
     radius: number;
     managers: Types.ObjectId[];
     employees: Types.ObjectId[];
+    isDeleted: boolean;
 }

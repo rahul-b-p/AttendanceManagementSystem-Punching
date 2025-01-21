@@ -53,7 +53,11 @@ const officeSchema = new Schema<IOffice>({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'users'
         }
-    ]
+    ],
+    isDeleted: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true,
     toJSON: {
@@ -70,7 +74,7 @@ const officeSchema = new Schema<IOffice>({
     }
 });
 
-officeSchema.index({ 'location.latitude': 1, 'location.longitude': 1 }, { unique: true });
+officeSchema.index({ 'location.latitude': 1, 'location.longitude': 1, 'isDeleted': 1 }, { unique: true });
 
 
 const Office = mongoose.model<IOffice>('offices', officeSchema);

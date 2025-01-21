@@ -5,12 +5,11 @@ import { Office } from "../models"
 import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData } from "../types";
 import { logger } from "../utils";
 import { updateUserById } from "./user.service";
-import { json } from "stream/consumers";
 
 
 export const validateLocationUniqueness = async (location: Location): Promise<Boolean> => {
     try {
-        const officeExistsOnLocation = await Office.exists({ location });
+        const officeExistsOnLocation = await Office.exists({ location, isDeleted: false });
         return officeExistsOnLocation === null
     } catch (error: any) {
         logger.error(error);
@@ -36,7 +35,7 @@ export const fetchOffices = async (page: number, limit: number, query: officeQue
     try {
         const skip = (page - 1) * limit;
 
-        let matchFilter: any = {};
+        let matchFilter: any = { isDeleted: false };
         if (query.city) {
             matchFilter["adress.city"] = query.city;
         }
@@ -76,7 +75,7 @@ export const fetchOffices = async (page: number, limit: number, query: officeQue
                 $project: {
                     _id: 1,
                     officeName: 1,
-                    address: 1,
+                    adress: 1,
                     location: 1,
                     radius: 1,
                     managers: {
@@ -141,8 +140,17 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
 
 export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
-        const deletedOffice = await Office.findByIdAndDelete(_id);
-        return deletedOffice !== null
+        const existingOffice = await findOfficeById(_id);
+        if (!existingOffice || existingOffice.isDeleted) return false;
+
+        const users = [...existingOffice.managers, ...existingOffice.employees]
+        await Promise.all(users.map((userId) => {
+            updateUserById(userId.toString(), { $unset: { officeId: 1 } });
+        }));
+
+        const deletedOffice = await Office.findByIdAndUpdate(_id, { isDeleted: true });
+        if (!deletedOffice) throw Error("existingOffice Can't find while deletion");
+        else return true;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
