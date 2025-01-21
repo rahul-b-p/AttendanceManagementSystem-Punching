@@ -1,13 +1,66 @@
-import { Roles } from "../enums";
-import { IUser } from "../interfaces";
+import { Types } from "mongoose";
+import { UserSortKeys } from "../enums";
+import { IOffice, IUser } from "../interfaces";
+import { PageInfo } from "./page.type";
 
+export type UserAuthBody = {
+    email: string;
+    password: string;
+};
 
 export type UserInsertArgs = {
     username: string;
     email: string;
-    phone:string;
-    password: string;
-    role:Roles
+    phone: string;
+    role: string;
 };
 
-export type IUserData = Omit<IUser, 'password' |'refreshToken'>;
+export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'verified' | '__v'>;
+
+export type UserUpdateArgs = {
+    $set?: Partial<IUser>;
+    $unset?: {
+        refreshToken?: 1;
+        officeId?: 1
+    };
+};
+
+
+export type UserLoginOtpReq = {
+    otp: string;
+    email: string;
+};
+
+export type UserOtpVerifyBody = UserLoginOtpReq & {
+    password: string;
+    confirmPassword: string;
+}
+
+export type UserPasswordResetReq = UserLoginOtpReq & { password: string };
+
+export type UserUpdateBody = Partial<UserInsertArgs>;
+
+export type UserFilterQuery = {
+    pageNo: string;
+    pageLimit: string;
+    role?: string;
+    sortKey?: UserSortKeys;
+};
+
+export type userQuery = Partial<UserInsertArgs>;
+
+
+export type UserToShow = UserInsertArgs & {
+    _id: Types.ObjectId;
+    createAt: Date;
+    office?: IOffice;
+}
+
+export type UserSearchQuery = {
+    username?: string;
+}
+
+export type UserFetchResult = PageInfo & {
+    data: UserToShow[];
+}
+

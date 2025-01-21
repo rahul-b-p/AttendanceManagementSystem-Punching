@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import { Roles } from "../enums";
 import { IUser } from "../interfaces";
 import { hashPassword } from "../utils";
 
@@ -20,37 +19,60 @@ const userSchema = new Schema<IUser>({
         required: true
     },
     password: {
-        type: String,
-        required: true
+        type: String
     },
     role: {
         type: String,
         required: true,
-        enum: Object.values(Roles)
     },
     refreshToken: {
         type: String,
         required: false,
     },
+    verified: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
     createAt: {
         type: Date,
         default: () => new Date()
+    },
+    officeId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'offices'
     }
-});
+}, {
+    toJSON: {
+        transform(doc, ret) {
+            delete ret.__v;
+            return ret;
+        },
+    },
+    toObject: {
+        transform(doc, ret) {
+            delete ret.__v;
+            return ret;
+        }
+    }
+}
+);
 
 userSchema.pre('save', async function (next) {
     if (this.isModified('password') || this.isNew) {
         try {
-            this.password = await hashPassword(this.password);
+            if (this.password) {
+                this.password = await hashPassword(this.password);
+            }
             next();
-        } catch (err:any) {
+        } catch (err: any) {
             next(err);
         }
     } else {
         next();
     }
 });
-
+userSchema.index({ username: 'text' });
 const User = mongoose.model<IUser>('users', userSchema);
 
 export default User;
