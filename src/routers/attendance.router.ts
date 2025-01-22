@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { attendanceController } from "../controllers";
-import { validateReqBody } from "../middlewares";
-import { punchInSchema } from "../schemas";
+import { roleAuth, validateReqBody } from "../middlewares";
+import { createAttendanceSchema, punchInSchema } from "../schemas";
+import { Roles } from "../enums";
 
 
 
@@ -11,3 +12,5 @@ export const router = Router();
 router.post('/punchIn', validateReqBody(punchInSchema), attendanceController.punchIn);
 
 router.put('/punchOut', attendanceController.punchOut);
+
+router.post('/:userId', roleAuth(Roles.admin), validateReqBody(createAttendanceSchema), attendanceController.createAttendance);

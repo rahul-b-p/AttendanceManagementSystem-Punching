@@ -4,17 +4,26 @@ import { AttendancePunchinArgs, UpdateAttendanceArgs } from "../types";
 import { logger } from "../utils"
 
 
-export const isPunchInRecordedForDay = async (userId: string): Promise<IAttendance | null> => {
+export const isPunchInRecordedForDay = async (userId: string, date?: Date): Promise<IAttendance | null> => {
     try {
-        const startOfCurrentDay = new Date();
-        startOfCurrentDay.setHours(0, 0, 0, 0);
+        let punchIn: any;
+        if (date) {
+            punchIn = date;
+        }
+        else {
+            const startOfCurrentDay = new Date();
+            startOfCurrentDay.setHours(0, 0, 0, 0);
 
-        const endOfCurrentDay = new Date();
-        endOfCurrentDay.setHours(23, 59, 59, 999);
+            const endOfCurrentDay = new Date();
+            endOfCurrentDay.setHours(23, 59, 59, 999);
+
+            punchIn = { $gte: startOfCurrentDay, $lt: endOfCurrentDay }
+        }
+
 
         const attendanceExistOnCurrentDay = await Attendance.findOne({
             userId,
-            punchIn: { $gte: startOfCurrentDay, $lt: endOfCurrentDay }
+            punchIn
         });
 
         return attendanceExistOnCurrentDay;
