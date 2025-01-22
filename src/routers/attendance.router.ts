@@ -9,3 +9,5 @@ export const router = Router();
 
 
 router.post('/punchIn', validateReqBody(punchInSchema), attendanceController.punchIn);
+
+router.put('/punchOut', attendanceController.punchOut);

@@ -1,10 +1,10 @@
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
-import { AttendancePunchinArgs } from "../types";
+import { AttendancePunchinArgs, UpdateAttendanceArgs } from "../types";
 import { logger } from "../utils"
 
 
-export const validateUniqunessOfUserPunchIn = async (userId: string): Promise<boolean> => {
+export const isPunchInRecordedForDay = async (userId: string): Promise<IAttendance | null> => {
     try {
         const startOfCurrentDay = new Date();
         startOfCurrentDay.setHours(0, 0, 0, 0);
@@ -12,12 +12,12 @@ export const validateUniqunessOfUserPunchIn = async (userId: string): Promise<bo
         const endOfCurrentDay = new Date();
         endOfCurrentDay.setHours(23, 59, 59, 999);
 
-        const attendanceExistOnCurrentDay = await Attendance.exists({
+        const attendanceExistOnCurrentDay = await Attendance.findOne({
             userId,
             punchIn: { $gte: startOfCurrentDay, $lt: endOfCurrentDay }
         });
 
-        return attendanceExistOnCurrentDay === null;
+        return attendanceExistOnCurrentDay;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
@@ -31,6 +31,19 @@ export const insertAttendance = async (attendanceData: AttendancePunchinArgs): P
 
         delete (newAttendance as any).__v;
         return newAttendance;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const updateAttendanceById = async (_id: string, upddateData: UpdateAttendanceArgs): Promise<IAttendance | null> => {
+    try {
+        const updatedAttendance = await Attendance.findByIdAndUpdate(_id, upddateData, { new: true });
+
+        delete (updatedAttendance as any).__v;
+
+        return updatedAttendance
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
