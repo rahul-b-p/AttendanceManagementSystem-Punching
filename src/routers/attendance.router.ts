@@ -16,3 +16,5 @@ router.put('/punchOut', attendanceController.punchOut);
 router.post('/:userId', roleAuth(Roles.admin), validateReqBody(createAttendanceSchema), attendanceController.createAttendance);
 
 router.put('/:id', roleAuth(Roles.admin), validateReqBody(updateAttendanceSchema), attendanceController.updateAttendance);
+
+router.delete('/:id', roleAuth(Roles.admin), attendanceController.deleteAttendance);

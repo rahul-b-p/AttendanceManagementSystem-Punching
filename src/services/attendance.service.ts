@@ -91,3 +91,14 @@ export const comparePunchInPunchOut = (punchIn?: Date, punchOut?: Date, existing
         throw error;
     }
 }
+
+export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
+    try {
+        const deletedUser = await Attendance.findByIdAndDelete(_id);
+
+        return deletedUser !== null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}

@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IAttendance } from "../interfaces";
 import { compareDates, getDateFromInput, logger, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, findAttendanceById, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { comparePunchInPunchOut, deleteAttendnaceById, findAttendanceById, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
 import { AttendancePunchinArgs, createAttendanceBody, Location, TimeInHHMM, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus } from "../enums";
 import { isValidObjectId } from "../validators";
@@ -113,11 +113,11 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
 export const updateAttendance = async (req: customRequestWithPayload<{ id: string }, any, updateAttendanceBody>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const isValidUserId = isValidObjectId(id);
-        if (!isValidUserId) throw new BadRequestError("inValidUserId provided");
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError("inValidUserId provided");
 
         const existingAttendance = await findAttendanceById(id);
-        if (!existingAttendance) throw new NotFoundError('Requested Attendance Data not found!')
+        if (!existingAttendance) throw new NotFoundError('Requested Attendance Data not found!');
 
         const existingUser = await findUserById(existingAttendance.userId.toString());
         if (!existingUser) throw new Error("Not Found the user data of existing attendance Feild!");
@@ -165,6 +165,33 @@ export const updateAttendance = async (req: customRequestWithPayload<{ id: strin
         res.status(200).json(await sendCustomResponse("updated given Attendnace", updatedAttendnaceData));
     } catch (error) {
         logger.error(error);
-        next(error)
+        next(error);
+    }
+}
+
+export const deleteAttendance = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError("inValidUserId provided");
+
+        const existingAttendance = await findAttendanceById(id);
+        if (!existingAttendance) throw new NotFoundError('Requested Attendance Data not found!');
+
+        const existingUser = await findUserById(existingAttendance.userId.toString());
+        if (!existingUser) throw new Error("Not Found the user data of existing attendance Feild!");
+
+        if (existingUser.officeId) {
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        }
+
+        const isDeleted = await deleteAttendnaceById(id);
+        if (!isDeleted) throw new NotFoundError('Requested Attendance Data not found!');
+
+        res.status(200).json(await sendCustomResponse("Attendance Data Deleted Successfully"));
+    } catch (error) {
+        logger.error(error);
+        next(error);
     }
 }
