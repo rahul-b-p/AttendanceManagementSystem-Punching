@@ -13,10 +13,12 @@ export type AttendancePunchinArgs = {
     punchOut?: Date;
 }
 
-export type UpdateAttendanceArgs = Partial<AttendancePunchinArgs>;
+export type UpdateAttendanceArgs = Partial<Omit<AttendancePunchinArgs,'userId'|'officeId'>>;
 
 export type createAttendanceBody = Location & {
     date: YYYYMMDD;
     punchInTime: TimeInHHMM;
     punchOutTime: TimeInHHMM;
 }
+
+export type updateAttendanceBody = Partial<createAttendanceBody>;

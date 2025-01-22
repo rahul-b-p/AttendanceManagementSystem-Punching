@@ -32,3 +32,16 @@ export const getDateFromInput = (dateString: YYYYMMDD, timeString: TimeInHHMM): 
 
     return new Date(dateTimeString);
 }
+
+
+export const updateHoursAndMinutesInDate = (date: Date, timeString: TimeInHHMM): Date => {
+
+    if (!HHMMregex.test(timeString)) {
+        throw new Error("Invalid time format. Expected format: HH:MM.");
+    }
+
+    const [newHours, newMinutes] = timeString.split(':').map(Number);
+
+    date.setUTCHours(newHours,newMinutes);
+    return date;
+}

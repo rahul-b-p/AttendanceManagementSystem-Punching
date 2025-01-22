@@ -58,3 +58,36 @@ export const updateAttendanceById = async (_id: string, upddateData: UpdateAtten
         throw new Error(error.message);
     }
 }
+
+export const findAttendanceById = async (_id: string): Promise<IAttendance | null> => {
+    try {
+        return await Attendance.findById(_id);
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const comparePunchInPunchOut = (punchIn?: Date, punchOut?: Date, existingAttendance?: IAttendance): boolean => {
+    try {
+        if (!punchIn && !punchOut) throw new Error('Either punchIn or punchOut argument are required');
+        else if (punchIn && punchOut) {
+            return punchOut > punchIn;
+        }
+        else if (punchIn && existingAttendance) {
+            return existingAttendance.punchOut ? existingAttendance.punchOut > punchIn : false;
+        }
+        else if (punchOut && existingAttendance) {
+            return punchOut > existingAttendance.punchIn;
+        }
+        else if (existingAttendance) {
+            return existingAttendance.punchOut ? existingAttendance.punchOut > existingAttendance.punchIn : true;
+        }
+        else {
+            throw new Error('No Data Provided for a comparison, Invalid usage of puchIn punchOut time comparison');
+        }
+    } catch (error) {
+        logger.error(error);
+        throw error;
+    }
+}
