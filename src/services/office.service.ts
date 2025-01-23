@@ -236,3 +236,16 @@ export const deleteOfficeById = async (_id: string): Promise<boolean> => {
         throw new Error(error.message);
     }
 }
+
+export const isManagerAuthorizedForEmployee = async (employeeId: string, managerId: string): Promise<boolean> => {
+    try {
+        const officeExists = await Office.exists({
+            managers: { $in: [managerId] },
+            employees: { $in: [employeeId] }
+        });
+        return officeExists !== null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message)
+    }
+}

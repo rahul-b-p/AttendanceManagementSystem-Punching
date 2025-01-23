@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { attendanceController } from "../controllers";
 import { roleAuth, validateReqBody, validateReqQuery } from "../middlewares";
-import { attendnaceFilterQuerySchema, createAttendanceSchema, punchInSchema, updateAttendanceSchema } from "../schemas";
+import { attendnaceFilterQuerySchema, attendnaceSummaryQuerySchema, createAttendanceSchema, punchInSchema, updateAttendanceSchema } from "../schemas";
 import { Roles } from "../enums";
 
 
@@ -20,3 +20,5 @@ router.put('/:id', roleAuth(Roles.admin), validateReqBody(updateAttendanceSchema
 router.delete('/:id', roleAuth(Roles.admin), attendanceController.deleteAttendance);
 
 router.get('/', roleAuth(Roles.admin, Roles.manager), validateReqQuery(attendnaceFilterQuerySchema), attendanceController.readAllAttendance);
+
+router.get('/summary', roleAuth(Roles.admin, Roles.manager), validateReqQuery(attendnaceSummaryQuerySchema), attendanceController.attendanceSummary);

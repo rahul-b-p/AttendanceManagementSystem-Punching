@@ -1,9 +1,8 @@
 import { DateStatus } from "../enums";
 import { TimeInHHMM, YYYYMMDD } from "../types";
-import { logger } from "./logger";
 import { HHMMregex, YYYYMMDDregex } from "./regex";
 
-export const compareDates = (inputDate: string): DateStatus => {
+export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
 
     const currentDate = new Date();
     const comparisonDate = new Date(inputDate);

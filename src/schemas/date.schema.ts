@@ -4,7 +4,7 @@ import { HHMMregex, YYYYMMDDregex } from "../utils";
 
 
 export const YYYYMMDDSchema = z.string({
-    message: "Attendance recording date is required",
+    message: "date is required",
 }).regex(
     YYYYMMDDregex,
     "Date must be in YYYY-MM-DD format"

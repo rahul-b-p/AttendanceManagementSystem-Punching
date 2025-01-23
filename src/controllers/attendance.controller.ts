@@ -1,10 +1,10 @@
 import { NextFunction, Response } from "express";
-import { customRequestWithPayload, IAttendance } from "../interfaces";
+import { customRequestWithPayload, IAttendance, IUser } from "../interfaces";
 import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
-import { DateStatus } from "../enums";
+import { DateStatus, Roles } from "../enums";
 import { isValidObjectId } from "../validators";
 
 
@@ -233,6 +233,38 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
         res.status(200).json({
             success: true, message, ...fetchResult, ...PageNationFeilds
         });
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+}
+
+export const attendanceSummary = async (req: customRequestWithPayload<{}, any, any, AttendanceSummaryQuery>, res: Response, next: NextFunction) => {
+    try {
+        const ownerId = req.payload?.id as string;
+        const ownerData = await findUserById(ownerId) as IUser;
+
+        const { userId, startDate, endDate } = req.query;
+
+        const StartAndEndDateStatus = [startDate, endDate].map(compareDatesWithCurrentDate);
+        if (StartAndEndDateStatus.includes(DateStatus.Future)) throw new BadRequestError("Can't compare date status of future");
+
+        const existingUser = await findUserById(userId);
+        if (!existingUser) throw new NotFoundError('No User Found with queried userId!');
+
+        if (!existingUser.officeId) throw new ForbiddenError("User not Assigend on any office, You can't get the attendance Summary");
+
+        const existingOffice = findOfficeById(existingUser.officeId.toString());
+        if (!existingOffice) throw new Error('Not Found the user data of existing attendance Feild!');
+
+        if (ownerData.role !== Roles.admin) {
+            const isPermitted = await isManagerAuthorizedForEmployee(userId, ownerId);
+            if (!isPermitted) throw new ForbiddenError('You can Only Access Employees of Assigned office');
+        }
+
+        const attendnceSummaryData = await findAttendanceSummary(req.query);
+        const message = attendnceSummaryData ? `Fetched Attenadance summary of user with id: ${userId} between ${startDate} and ${endDate} ` : `User with id: ${userId} have no Attendance history between  ${startDate} and ${endDate}`
+        res.status(200).json(await sendCustomResponse(message, attendnceSummaryData));
     } catch (error) {
         logger.error(error);
         next(error);

@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { AttendanceSortArgs } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
-import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
+import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceSummary, AttendanceSummaryQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
 import { logger } from "../utils"
 
 
@@ -211,6 +211,59 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
         }
 
         return attendances.length > 0 ? fetchResult : null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Promise<AttendanceSummary | null> => {
+    const { userId, endDate, startDate } = query
+    try {
+        const matchFilter = {
+            userId: new Types.ObjectId(userId),
+            punchIn: {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            }
+        }
+        
+        const attendanceSummary: AttendanceSummary[] = await Attendance.aggregate([
+            { $match: matchFilter },
+            {
+                $project: {
+                    userId: 1,
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$punchIn" } }, // Extract date from punchIn
+                    workingHours: {
+                        $cond: {
+                            if: { $and: ["$punchOut", "$punchIn"] },
+                            then: { $divide: [{ $subtract: ["$punchOut", "$punchIn"] }, 1000 * 60 * 60] }, // Hours
+                            else: 0,
+                        },
+                    },
+                    punchOutMissing: { $not: ["$punchOut"] }, // Mark records missing punchOut
+                }
+            },
+            {
+                $group: {
+                    _id: { userId: "$userId" },
+                    totalDays: { $sum: 1 }, // Count total days
+                    totalHours: { $sum: "$workingHours" }, // Sum of working hours
+                    missedPunchOuts: { $sum: { $cond: ["$punchOutMissing", 1, 0] } }, // Count missed punch-outs
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    userId: "$_id.userId",
+                    totalDays: 1,
+                    totalHours: { $round: ["$totalHours", 2] }, // Round to 2 decimal places
+                    missedPunchOuts: 1,
+                },
+            },
+        ]);
+
+        return attendanceSummary.length > 0 ? attendanceSummary[0] : null;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

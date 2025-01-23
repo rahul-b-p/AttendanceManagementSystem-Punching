@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { AttendanceSortKeys } from "../enums";
 import { IAttendance, IOffice } from "../interfaces";
 import { YYYYMMDD } from "./date.type";
@@ -46,4 +47,18 @@ export type AttendanceFilterQuery = AttendanceQuery & {
     pageNo: string;
     pageLimit: string;
     sortKey?: AttendanceSortKeys;
+}
+
+
+export type AttendanceSummaryQuery = {
+    userId: string;
+    startDate: YYYYMMDD;
+    endDate: YYYYMMDD
+}
+
+export type AttendanceSummary = {
+    userId: Types.ObjectId;
+    totalDays: number;
+    totalHours: number;
+    missedPunchOuts: number;
 }

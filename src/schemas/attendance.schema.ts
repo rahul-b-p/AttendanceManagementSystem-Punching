@@ -55,3 +55,9 @@ export const attendnaceFilterQuerySchema = z.object({
     officeId: z.string().regex(objectIdRegex, { message: "Invalid officeId" }).optional(),
     sortKey: z.nativeEnum(AttendanceSortKeys, { message: "Invalid sortKey" }).optional()
 }).strict();
+
+export const attendnaceSummaryQuerySchema = z.object({
+    userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }),
+    startDate: YYYYMMDDSchema,
+    endDate: YYYYMMDDSchema
+}).strict();
