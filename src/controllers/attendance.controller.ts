@@ -1,9 +1,9 @@
 import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IAttendance } from "../interfaces";
-import { compareDates, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
+import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
-import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, createAttendanceBody, Location, TimeInHHMM, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
+import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus } from "../enums";
 import { isValidObjectId } from "../validators";
 
@@ -81,7 +81,7 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
 
         const { punchInTime, date, punchOutTime, latitude, longitude } = req.body;
 
-        const dateStatus = compareDates(date);
+        const dateStatus = compareDatesWithCurrentDate(date);
         if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't add attendance for future");
 
         const punchIn = getDateFromInput(date, punchInTime);
@@ -132,7 +132,7 @@ export const updateAttendance = async (req: customRequestWithPayload<{ id: strin
         const updateAttendanceArgs: UpdateAttendanceArgs = {};
         let hasPunchIn: IAttendance | null;
         if (date) {
-            const dateStatus = compareDates(date);
+            const dateStatus = compareDatesWithCurrentDate(date);
             if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't update to a future date");
 
             if (punchInTime) {
@@ -198,11 +198,29 @@ export const deleteAttendance = async (req: customRequestWithPayload<{ id: strin
 
 export const readAllAttendance = async (req: customRequestWithPayload<{}, any, any, AttendanceFilterQuery>, res: Response, next: NextFunction) => {
     try {
-        const { pageLimit, pageNo, sortKey, ...attendanceFilter} = req.query;
+        const { pageLimit, pageNo, sortKey, ...attendanceFilter } = req.query;
+
+        if (attendanceFilter.userId) {
+            const existingUser = await findUserById(attendanceFilter.userId);
+            if (!existingUser) throw new NotFoundError('No User Found with queried userId!');
+
+            if (!existingUser.officeId) throw new ForbiddenError("User not Assigend on any office, You can't get the attendance Summary");
+
+            const existingOffice = findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw new Error('Not Found the user data of existing attendance Feild!');
+        }
+
+        if (attendanceFilter.officeId) {
+            const existingOffice = findOfficeById(attendanceFilter.officeId.toString());
+            if (!existingOffice) throw new Error('Not Found the user data of existing attendance Feild!');
+        }
+
+        if (attendanceFilter.date) {
+            const dateStatus = compareDatesWithCurrentDate(attendanceFilter.date);
+            if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't filter future Attendnace data!")
+        }
 
         const sortArgs = getAttendanceSortArgs(sortKey);
-
-
         const fetchResult = await fetchAttendanceData(Number(pageNo), Number(pageLimit), attendanceFilter, sortArgs);
 
         const message = fetchResult ? 'Attendance Data Fetched Successfully' : 'No Attendnace Data found to show';
