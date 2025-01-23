@@ -3,7 +3,8 @@ import { AttendanceSortArgs } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
 import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceSummary, AttendanceSummaryQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
-import { logger } from "../utils"
+import { calculatePageSkip, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
+import { validateAttendanceQuery } from "../validators";
 
 
 export const isPunchInRecordedForDay = async (userId: string, date?: Date): Promise<IAttendance | null> => {
@@ -105,38 +106,47 @@ export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
     }
 }
 
-export const fetchAttendanceData = async (page: number, limit: number, query: AttendanceQuery, sort: AttendanceSortArgs) => {
+
+/**
+ * Aggregates attendance data to count the number of records that match the given filter criteria.
+ * This function applies the specified additional fields and filter conditions to an aggregation query 
+ */
+
+export const getAttendnaceFilterCount = async (addFeilds: Record<string, any>, matchFilter: Record<string, any>): Promise<number> => {
     try {
-        const skip = (page - 1) * limit;
-
-        const { date, officeId, userId } = query;
-
-        const matchFilter: any = {}
-        if (date) {
-            let start = new Date(date);
-            start.setHours(0, 0, 0, 0);
-            let end = new Date(date);
-            end.setHours(23, 59, 59, 99);
-            matchFilter["punchIn"] = { $gte: start, $lte: end };
-        }
-        if (userId) {
-            matchFilter["userId"] = new Types.ObjectId(userId);
-        }
-        if (officeId) {
-            matchFilter["officeId"] = new Types.ObjectId(officeId);
-        }
-
         const totalFilter = await Attendance.aggregate([
-            { $match: matchFilter },
+            {
+                $addFields: addFeilds,
+            },
+            {
+                $match: matchFilter
+            },
             {
                 $count: 'totalCount'
             }
         ]);
 
+        return totalFilter.length > 0 ? totalFilter[0].totalCount as number : 0;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
 
-        const totalItems = totalFilter.length > 0 ? totalFilter[0].totalCount : 0;
 
-        const attendances: AttendanceToShow[] = await Attendance.aggregate([
+/**
+ * Aggregates attendance data by applying custom fields, filters, pagination, and sorting.
+ */
+export const aggregateAttendanceData = async (
+    addFeilds: Record<string, any>,
+    matchFilter: Record<string, any>,
+    skip: number,
+    limit: number,
+    sort: Record<string, any>
+): Promise<AttendanceToShow[]> => {
+    try {
+        return await Attendance.aggregate([
+            { $addFields: addFeilds, },
             { $match: matchFilter },
             { $skip: skip },
             { $limit: limit },
@@ -168,7 +178,7 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
                     preserveNullAndEmptyArrays: true,
                 },
             },
-            { $sort: JSON.parse(sort) },
+            { $sort: sort },
             {
                 $project: {
                     _id: 1,
@@ -199,9 +209,34 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
                     }
                 },
             },
-        ]);
+        ]) as AttendanceToShow[];
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
 
+
+/**
+ * Fetches attendance data from the database with pagination, filtering, and sorting.
+ * Also fetching the page info(total pages, pagesize, total data, current page).
+ */
+
+export const fetchAttendanceData = async (page: number, limit: number, query: AttendanceQuery, sort: AttendanceSortArgs): Promise<AttendanceFetchResult | null> => {
+    try {
+        validateAttendanceQuery(query);
+
+        const skip = calculatePageSkip(page, limit);
+
+        const matchFilter = prepareMatchFilter(query);
+
+        const addFeilds = prepareAddFeilds(query);
+
+        const attendances: AttendanceToShow[] = await aggregateAttendanceData(addFeilds, matchFilter, skip, limit, JSON.parse(sort));
+
+        const totalItems = await getAttendnaceFilterCount(addFeilds, matchFilter);
         const totalPages = Math.ceil(totalItems / limit);
+
         const fetchResult: AttendanceFetchResult = {
             page,
             pageSize: limit,
@@ -227,7 +262,7 @@ export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Prom
                 $lte: new Date(endDate)
             }
         }
-        
+
         const attendanceSummary: AttendanceSummary[] = await Attendance.aggregate([
             { $match: matchFilter },
             {

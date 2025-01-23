@@ -27,3 +27,10 @@ export const pagenate = (pageInfo: PageInfo, url: string): PageNationFeilds => {
 
     return pageNationFeilds;
 }
+
+/**
+ * Calculate the number of documents to skip for pagination.
+ */
+export const calculatePageSkip = (page: number, limit: number): number => {
+    return (page - 1) * limit;
+};

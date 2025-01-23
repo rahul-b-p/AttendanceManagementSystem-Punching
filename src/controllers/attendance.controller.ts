@@ -203,7 +203,7 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
         if (!ownerData) throw new AuthenticationError();
         const ownerRole = await getDefaultRoleFromUserRole(ownerData.role);
 
-        const { pageLimit, pageNo, sortKey, date, officeId, userId } = req.query;
+        const { pageLimit, pageNo, sortKey, date, officeId, userId, ...remainingQueryFeilds } = req.query;
 
         if (userId) {
             if (ownerRole == Roles.employee) throw new ForbiddenError("Insufficient permisson to retrive a specific users attendnace data");
@@ -229,7 +229,7 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
             if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't filter future Attendnace data!")
         }
 
-        const query: AttendanceQuery = { date };
+        const query: AttendanceQuery = { date, ...remainingQueryFeilds };
 
         if (ownerRole == Roles.admin) {
             query.officeId = officeId;

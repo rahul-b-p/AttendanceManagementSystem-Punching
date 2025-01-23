@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { AttendanceSortKeys } from "../enums";
+import { AttendanceSortKeys, Days } from "../enums";
 import { IAttendance, IOffice } from "../interfaces";
 import { YYYYMMDD } from "./date.type";
 import { Location } from "./office.type";
@@ -29,6 +29,9 @@ export type createAttendanceBody = Location & {
 export type updateAttendanceBody = Partial<createAttendanceBody>;
 
 export type AttendanceQuery = {
+    startDate?: YYYYMMDD;
+    endDate?: YYYYMMDD;
+    days?: Days[];
     date?: YYYYMMDD;
     userId?: string;
     officeId?: string;

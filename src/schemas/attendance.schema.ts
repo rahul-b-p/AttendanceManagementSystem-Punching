@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { HHMMSchema, YYYYMMDDSchema } from "./date.schema";
 import { objectIdRegex, pageNumberRegex } from "../utils";
-import { AttendanceSortKeys } from "../enums";
+import { AttendanceSortKeys, Days } from "../enums";
 
 
 
@@ -52,9 +52,36 @@ export const attendnaceFilterQuerySchema = z.object({
     pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
     date: YYYYMMDDSchema.optional(),
     userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }).optional(),
+    startDate: YYYYMMDDSchema.optional(),
+    endDate: YYYYMMDDSchema.optional(),
+    days: z.nativeEnum(Days).optional(),
     officeId: z.string().regex(objectIdRegex, { message: "Invalid officeId" }).optional(),
     sortKey: z.nativeEnum(AttendanceSortKeys, { message: "Invalid sortKey" }).optional()
-}).strict();
+}).strict()
+    .refine(
+        (data) =>
+            !(data.date && (data.startDate || data.endDate || data.days)),
+        {
+            message: "You cannot provide startDate, endDate, or days along with date",
+            path: ["date"],
+        }
+    )
+    .refine((data) => !data.startDate || data.endDate, {
+        message: "endDate must be provided if startDate is provided",
+        path: ["startDate"],
+    }).refine((data) => {
+        if (data.startDate && data.endDate) {
+            const startDate = new Date(data.startDate);
+            const endDate = new Date(data.endDate);
+            return startDate <= endDate;
+        }
+        return true;
+    }, {
+        message: "startDate must be less than or equal to endDate",
+        path: ["startDate"],
+    });
+
+
 
 export const attendnaceSummaryQuerySchema = z.object({
     userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }),

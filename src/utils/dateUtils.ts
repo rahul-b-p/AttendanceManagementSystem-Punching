@@ -1,5 +1,5 @@
 import { DateStatus } from "../enums";
-import { TimeInHHMM, YYYYMMDD } from "../types";
+import { DateRange, TimeInHHMM, YYYYMMDD } from "../types";
 import { HHMMregex, YYYYMMDDregex } from "./regex";
 
 export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
@@ -32,7 +32,6 @@ export const getDateFromInput = (dateString: YYYYMMDD, timeString: TimeInHHMM): 
     return new Date(dateTimeString);
 }
 
-
 export const updateHoursAndMinutesInDate = (date: Date, timeString: TimeInHHMM): Date => {
 
     if (!HHMMregex.test(timeString)) {
@@ -41,6 +40,54 @@ export const updateHoursAndMinutesInDate = (date: Date, timeString: TimeInHHMM):
 
     const [newHours, newMinutes] = timeString.split(':').map(Number);
 
-    date.setUTCHours(newHours,newMinutes);
+    date.setUTCHours(newHours, newMinutes);
     return date;
+}
+
+
+
+
+/**
+ * Calculate the date range based on the provided arguments.
+ * @param {string} singleDate - A single date in YYYY-MM-DD format (optional).
+ * @param {string} rangeStartDate - The start date of the range in YYYY-MM-DD format (optional).
+ * @param {string} rangeEndDate - The end date of the range in YYYY-MM-DD format (optional).
+ * @returns {DateRange|null} - An array containing `startDate` and `endDate` as Date elements,return null if no arguments provided
+ * @throws {Error} - Throws an error if arguments are invalid.
+ */
+export const calculateDateRange = (singleDate?: string, rangeStartDate?: string, rangeEndDate?: string): DateRange | null => {
+    if (singleDate && (rangeStartDate || rangeEndDate)) {
+        throw new Error("You cannot provide startDate, endDate, or days along with date.");
+    }
+
+    if (rangeStartDate && !rangeEndDate) {
+        throw new Error("endDate must be provided if startDate is provided.");
+    }
+
+    if (singleDate) {
+        const date = new Date(singleDate);
+        if (isNaN(date.getTime())) {
+            throw new Error("Invalid singleDate provided.");
+        }
+
+        const startOfDay = new Date(date.setHours(0, 0, 0, 0)); // Start of the day
+        const endOfDay = new Date(date.setHours(23, 59, 59, 999)); // End of the day
+
+        return [startOfDay, endOfDay];
+    }
+    else if (rangeStartDate && rangeEndDate) {
+        const startDate = new Date(rangeStartDate);
+        const endDate = new Date(rangeEndDate);
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            throw new Error("Invalid rangeStartDate or rangeEndDate provided.");
+        }
+
+        if (startDate > endDate) {
+            throw new Error("rangeStartDate cannot be after rangeEndDate.");
+        }
+
+        return [startDate, endDate];
+    }
+    else return null;
 }
