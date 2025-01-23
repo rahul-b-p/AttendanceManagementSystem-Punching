@@ -30,6 +30,38 @@ export const getPermissionSetFromDefaultRoles = (...roles: Roles[]): CustomRoleP
     }
 };
 
+export const getRolesFromPermissionSet = (permissions: CustomRolePermission[]): Roles[] => {
+    try {
+        const permissionLevelMap = {
+            [PermissionLevel.all]: Roles.admin,
+            [PermissionLevel.group]: Roles.manager,
+            [PermissionLevel.own]: Roles.employee,
+        };
+
+        // Extract levels from permissions and map them back to roles
+        const levels = new Set(
+            permissions.map((permission) => permission.level).flat()
+        );
+
+        const roles = Array.from(levels).map((level) => {
+            if (permissionLevelMap[level]) {
+                return permissionLevelMap[level];
+            } else {
+                throw new Error(`Invalid permission level: ${level}`);
+            }
+        });
+
+        if (!roles.length) {
+            throw new Error('No roles found for the given permissions.');
+        }
+
+        return roles;
+
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+};
 
 
 export const formatPermissionSetForDB = (permissionSet: PermissionInputFormat): CustomRolePermission[] => {

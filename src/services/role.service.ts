@@ -2,7 +2,7 @@ import { Roles } from "../enums";
 import { ICustomRole } from "../interfaces";
 import { CustomRole, User } from "../models"
 import { InsertRoleArgs, RolesFetchResult, UpdateRoleArgs } from "../types";
-import { formatPermissionSetForDB, logger } from "../utils";
+import { formatPermissionSetForDB, getRolesFromPermissionSet, logger } from "../utils";
 
 
 
@@ -114,6 +114,25 @@ export const deleteCustomRoleById = async (_id: string): Promise<boolean> => {
             await User.updateMany({ role: deletedRole.role }, { $set: { role: Roles.employee } })
         }
         return deletedRole !== null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const getDefaultRoleFromUserRole = async (roleString: string): Promise<Roles> => {
+    try {
+        if (Object.values(Roles).includes(roleString as Roles)) {
+            return roleString as Roles;
+        }
+
+        const customRole = await findCustomRole(roleString);
+        if (!customRole) throw new Error('Provided Invalid Role');
+        const defaultRoles = getRolesFromPermissionSet(customRole.permission);
+
+        if (defaultRoles.includes(Roles.admin)) return Roles.admin;
+        else if (defaultRoles.includes(Roles.manager)) return Roles.manager;
+        else return Roles.employee;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

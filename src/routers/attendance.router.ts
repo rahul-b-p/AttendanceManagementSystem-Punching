@@ -19,6 +19,6 @@ router.put('/:id', roleAuth(Roles.admin), validateReqBody(updateAttendanceSchema
 
 router.delete('/:id', roleAuth(Roles.admin), attendanceController.deleteAttendance);
 
-router.get('/', roleAuth(Roles.admin, Roles.manager), validateReqQuery(attendnaceFilterQuerySchema), attendanceController.readAllAttendance);
+router.get('/', validateReqQuery(attendnaceFilterQuerySchema), attendanceController.readAllAttendance);
 
 router.get('/summary', roleAuth(Roles.admin, Roles.manager), validateReqQuery(attendnaceSummaryQuerySchema), attendanceController.attendanceSummary);

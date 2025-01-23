@@ -2,8 +2,8 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IAttendance, IUser } from "../interfaces";
 import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
-import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
+import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus, Roles } from "../enums";
 import { isValidObjectId } from "../validators";
 
@@ -198,10 +198,17 @@ export const deleteAttendance = async (req: customRequestWithPayload<{ id: strin
 
 export const readAllAttendance = async (req: customRequestWithPayload<{}, any, any, AttendanceFilterQuery>, res: Response, next: NextFunction) => {
     try {
-        const { pageLimit, pageNo, sortKey, ...attendanceFilter } = req.query;
+        const ownerId = req.payload?.id as string;
+        const ownerData = await findUserById(ownerId);
+        if (!ownerData) throw new AuthenticationError();
+        const ownerRole = await getDefaultRoleFromUserRole(ownerData.role);
 
-        if (attendanceFilter.userId) {
-            const existingUser = await findUserById(attendanceFilter.userId);
+        const { pageLimit, pageNo, sortKey, date, officeId, userId } = req.query;
+
+        if (userId) {
+            if (ownerRole == Roles.employee) throw new ForbiddenError("Insufficient permisson to retrive a specific users attendnace data");
+
+            const existingUser = await findUserById(userId);
             if (!existingUser) throw new NotFoundError('No User Found with queried userId!');
 
             if (!existingUser.officeId) throw new ForbiddenError("User not Assigend on any office, You can't get the attendance Summary");
@@ -210,18 +217,35 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
             if (!existingOffice) throw new Error('Not Found the user data of existing attendance Feild!');
         }
 
-        if (attendanceFilter.officeId) {
-            const existingOffice = findOfficeById(attendanceFilter.officeId.toString());
+        if (officeId) {
+            if (ownerRole !== Roles.admin) throw new ForbiddenError("Insufficient permisson to retrive an office data");
+
+            const existingOffice = findOfficeById(officeId.toString());
             if (!existingOffice) throw new Error('Not Found the user data of existing attendance Feild!');
         }
 
-        if (attendanceFilter.date) {
-            const dateStatus = compareDatesWithCurrentDate(attendanceFilter.date);
+        if (date) {
+            const dateStatus = compareDatesWithCurrentDate(date);
             if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't filter future Attendnace data!")
         }
 
+        const query: AttendanceQuery = { date };
+
+        if (ownerRole == Roles.admin) {
+            query.officeId = officeId;
+            query.userId = userId;
+        }
+        else if (ownerRole == Roles.manager) {
+            if (!ownerData.officeId) throw new ForbiddenError("You are not assigned In any office, Can't read any office data");
+            query.officeId = ownerData.officeId.toString();
+            query.userId = userId;
+        }
+        else {
+            query.userId = ownerData._id.toString();
+        }
+
         const sortArgs = getAttendanceSortArgs(sortKey);
-        const fetchResult = await fetchAttendanceData(Number(pageNo), Number(pageLimit), attendanceFilter, sortArgs);
+        const fetchResult = await fetchAttendanceData(Number(pageNo), Number(pageLimit), query, sortArgs);
 
         const message = fetchResult ? 'Attendance Data Fetched Successfully' : 'No Attendnace Data found to show';
         let PageNationFeilds;
