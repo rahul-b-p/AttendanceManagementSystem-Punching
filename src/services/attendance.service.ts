@@ -1,6 +1,8 @@
+import { Types } from "mongoose";
+import { AttendanceSortArgs } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
-import { AttendancePunchinArgs, UpdateAttendanceArgs } from "../types";
+import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
 import { logger } from "../utils"
 
 
@@ -97,6 +99,118 @@ export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
         const deletedUser = await Attendance.findByIdAndDelete(_id);
 
         return deletedUser !== null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
+    }
+}
+
+export const fetchAttendanceData = async (page: number, limit: number, query: AttendanceQuery, sort: AttendanceSortArgs) => {
+    try {
+        const skip = (page - 1) * limit;
+
+        const { date, officeId, userId } = query;
+
+        const matchFilter: any = {}
+        if (date) {
+            let start = new Date(date);
+            start.setHours(0, 0, 0, 0);
+            let end = new Date(date);
+            end.setHours(23, 59, 59, 99);
+            matchFilter["punchIn"] = { $gte: start, $lte: end };
+        }
+        if (userId) {
+            matchFilter["userId"] = new Types.ObjectId(userId);
+        }
+        if (officeId) {
+            matchFilter["officeId"] = new Types.ObjectId(officeId);
+        }
+
+        const totalFilter = await Attendance.aggregate([
+            { $match: matchFilter },
+            {
+                $count: 'totalCount'
+            }
+        ]);
+
+
+        const totalItems = totalFilter.length > 0 ? totalFilter[0].totalCount : 0;
+
+        const attendances: AttendanceToShow[] = await Attendance.aggregate([
+            { $match: matchFilter },
+            { $skip: skip },
+            { $limit: limit },
+            {
+                $lookup: {
+                    from: 'offices',
+                    localField: 'officeId',
+                    foreignField: '_id',
+                    as: 'office',
+                }
+            },
+            {
+                $unwind: {
+                    path: "$office",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'userId',
+                    foreignField: '_id',
+                    as: 'user',
+                }
+            },
+            {
+                $unwind: {
+                    path: "$user",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            { $sort: JSON.parse(sort) },
+            {
+                $project: {
+                    _id: 1,
+                    punchIn: 1,
+                    punchOut: 1,
+                    location: 1,
+                    user: {
+                        _id: 1,
+                        username: 1,
+                        role: 1,
+                        email: 1,
+                        phone: 1
+                    },
+                    office: {
+                        _id: 1,
+                        officeName: 1,
+                        adress: {
+                            street: 1,
+                            city: 1,
+                            state: 1,
+                            zip_code: 1
+                        },
+                        location: {
+                            latitude: 1,
+                            longitude: 1
+                        },
+                        radius: 1
+                    }
+                },
+            },
+        ]);
+
+        const totalPages = Math.ceil(totalItems / limit);
+        const fetchResult: AttendanceFetchResult = {
+            page,
+            pageSize: limit,
+            totalPages,
+            totalItems,
+            data: attendances
+        }
+
+        return attendances.length > 0 ? fetchResult : null;
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { HHMMSchema, YYYYMMDDSchema } from "./date.schema";
+import { objectIdRegex, pageNumberRegex } from "../utils";
+import { AttendanceSortKeys } from "../enums";
 
 
 
@@ -43,3 +45,13 @@ export const updateAttendanceSchema = z.object({
         message: "At least one field is required. If date is provided, both punchInTime and punchOutTime must be provided.",
         path: ['date']
     });
+
+
+export const attendnaceFilterQuerySchema = z.object({
+    pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+    pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
+    date: YYYYMMDDSchema.optional(),
+    userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }).optional(),
+    officeId: z.string().regex(objectIdRegex, { message: "Invalid officeId" }).optional(),
+    sortKey: z.nativeEnum(AttendanceSortKeys, { message: "Invalid sortKey" }).optional()
+}).strict();

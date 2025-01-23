@@ -1,16 +1,16 @@
 import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IAttendance } from "../interfaces";
-import { compareDates, getDateFromInput, logger, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
+import { compareDates, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, deleteAttendnaceById, findAttendanceById, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
-import { AttendancePunchinArgs, createAttendanceBody, Location, TimeInHHMM, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
+import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findOfficeById, findUserById, insertAttendance, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, createAttendanceBody, Location, TimeInHHMM, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus } from "../enums";
 import { isValidObjectId } from "../validators";
 
 
 
 
-export const punchIn = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
+export const punchInAttendance = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
     try {
         const userId = req.payload?.id as string;
         const existingUser = await findUserById(userId);
@@ -38,7 +38,7 @@ export const punchIn = async (req: customRequestWithPayload<{}, any, Location>, 
     }
 }
 
-export const punchOut = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
+export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
     try {
         const userId = req.payload?.id as string;
         const existingUser = await findUserById(userId);
@@ -190,6 +190,31 @@ export const deleteAttendance = async (req: customRequestWithPayload<{ id: strin
         if (!isDeleted) throw new NotFoundError('Requested Attendance Data not found!');
 
         res.status(200).json(await sendCustomResponse("Attendance Data Deleted Successfully"));
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+}
+
+export const readAllAttendance = async (req: customRequestWithPayload<{}, any, any, AttendanceFilterQuery>, res: Response, next: NextFunction) => {
+    try {
+        const { pageLimit, pageNo, sortKey, ...attendanceFilter} = req.query;
+
+        const sortArgs = getAttendanceSortArgs(sortKey);
+
+
+        const fetchResult = await fetchAttendanceData(Number(pageNo), Number(pageLimit), attendanceFilter, sortArgs);
+
+        const message = fetchResult ? 'Attendance Data Fetched Successfully' : 'No Attendnace Data found to show';
+        let PageNationFeilds;
+        if (fetchResult) {
+            const { data, ...pageInfo } = fetchResult
+            PageNationFeilds = pagenate(pageInfo, req.originalUrl);
+        }
+
+        res.status(200).json({
+            success: true, message, ...fetchResult, ...PageNationFeilds
+        });
     } catch (error) {
         logger.error(error);
         next(error);

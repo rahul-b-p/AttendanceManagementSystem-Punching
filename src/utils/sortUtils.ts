@@ -1,4 +1,4 @@
-import { OfficeSortArgs, OfficeSortKeys, UserSortArgs, UserSortKeys } from '../enums';
+import { AttendanceSortArgs, AttendanceSortKeys, OfficeSortArgs, OfficeSortKeys, UserSortArgs, UserSortKeys } from '../enums';
 
 
 
@@ -20,4 +20,15 @@ export const getOfficeSortArgs = (sortKey?: OfficeSortKeys): OfficeSortArgs => {
     };
 
     return sortMapping[sortKey as OfficeSortKeys] || OfficeSortArgs.createAt;
+}
+
+
+
+export const getAttendanceSortArgs = (sortKey?: AttendanceSortKeys): AttendanceSortArgs => {
+    const sortMapping: Record<AttendanceSortKeys, AttendanceSortArgs> = {
+        [AttendanceSortKeys.punchIn]: AttendanceSortArgs.punchIn,
+        [AttendanceSortKeys.username]: AttendanceSortArgs.username
+    };
+
+    return sortMapping[sortKey as AttendanceSortKeys] || AttendanceSortArgs.punchIn;
 }
