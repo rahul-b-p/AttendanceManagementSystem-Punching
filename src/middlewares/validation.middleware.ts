@@ -5,7 +5,9 @@ import { InternalServerError } from "../errors";
 
 
 
-
+/**
+ * Middleware function to Validate Request body
+*/
 export const validateReqBody = (schema: ZodSchema) => {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -22,6 +24,10 @@ export const validateReqBody = (schema: ZodSchema) => {
     };
 }
 
+
+/**
+ * Middleware function to Validate Request query
+*/
 export const validateReqQuery= (schema: ZodSchema) => {
     return (req: Request, res: Response, next: NextFunction) => {
         try {

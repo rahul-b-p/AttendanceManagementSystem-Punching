@@ -6,7 +6,9 @@ import { formatPermissionSetForDB, getRolesFromPermissionSet, logger } from "../
 
 
 
-
+/**
+ *  Finds a custom role data on database by its name.
+*/
 export const findCustomRole = async (role: string): Promise<ICustomRole | null> => {
     try {
         return await CustomRole.findOne({ role });
@@ -16,6 +18,10 @@ export const findCustomRole = async (role: string): Promise<ICustomRole | null> 
     }
 }
 
+
+/**
+ *  Inserts a new custom role to the database with a unique.
+*/
 export const insertRole = async (newRoleInfo: InsertRoleArgs): Promise<ICustomRole> => {
     try {
         const { role, ...permissionSet } = newRoleInfo
@@ -35,6 +41,10 @@ export const insertRole = async (newRoleInfo: InsertRoleArgs): Promise<ICustomRo
     }
 }
 
+
+/**
+ *  Fetches all custom roles on database with pagenation.
+*/
 export const fetchCustomRoles = async (page: number, limit: number): Promise<RolesFetchResult | null> => {
     try {
         const skip = (page - 1) * limit;
@@ -70,6 +80,10 @@ export const fetchCustomRoles = async (page: number, limit: number): Promise<Rol
     }
 }
 
+
+/**
+ *  Updates a custom role data on database by its unique Id.
+*/
 export const updateCustomRoleById = async (_id: string, roleUpdateInfo: UpdateRoleArgs): Promise<ICustomRole | null> => {
     try {
         const { role, ...permissionSet } = roleUpdateInfo;
@@ -106,6 +120,10 @@ export const updateCustomRoleById = async (_id: string, roleUpdateInfo: UpdateRo
     }
 };
 
+
+/**
+ *  Deletes a custom role data on database by its unique Id.
+*/
 export const deleteCustomRoleById = async (_id: string): Promise<boolean> => {
     try {
         const deletedRole = await CustomRole.findByIdAndDelete(_id);
@@ -120,6 +138,10 @@ export const deleteCustomRoleById = async (_id: string): Promise<boolean> => {
     }
 }
 
+
+/**
+ *  Retrieves default roles by comparing the permission set of a custom role.
+*/
 export const getDefaultRoleFromUserRole = async (roleString: string): Promise<Roles> => {
     try {
         if (Object.values(Roles).includes(roleString as Roles)) {

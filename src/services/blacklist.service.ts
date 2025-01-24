@@ -4,6 +4,9 @@ import { logger } from "../utils";
 import jwt from 'jsonwebtoken';
 
 
+/**
+ * Checks the given token is blacklisted or not
+ */
 
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
     try {
@@ -15,6 +18,9 @@ export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
     }
 }
 
+/**
+ * Black list the given token until its expiration time
+ */
 export const blacklistToken = async (token: string): Promise<IBlackList> => {
     try {
         const { exp } = jwt.decode(token) as TokenPayload;

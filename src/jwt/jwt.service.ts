@@ -7,7 +7,9 @@ import { ZodError } from 'zod';
 
 
 
-
+/**
+ * Function to sign new JWT token with secret and payload
+ * */
 export const signToken = async (id: string, role: string, secretKey: string, expiration: string): Promise<string> => {
     try {
         secretKeySchema.parse(secretKey);
@@ -28,6 +30,10 @@ export const signToken = async (id: string, role: string, secretKey: string, exp
     }
 }
 
+
+/**
+ * Function to verify a JWT token
+ * */
 export const verifyToken = async (token: string, secretKey: string): Promise<TokenPayload | null> => {
     try {
         secretKeySchema.parse(secretKey);

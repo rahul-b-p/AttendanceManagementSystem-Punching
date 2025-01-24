@@ -3,10 +3,11 @@ import { logger } from "../utils/logger"
 import mongoose from 'mongoose';
 
 
-
+/**
+ * Function to connect to MongoDB using Mongoose and a MongoDB URI.
+ */ 
 export const connectDB = async () => {
-    try {
-        
+    try {   
 
         const mongoConnect = await mongoose.connect(MONGODB_URI);
         logger.info(`Mongo DB Connected: ${mongoConnect.connection.host} `);

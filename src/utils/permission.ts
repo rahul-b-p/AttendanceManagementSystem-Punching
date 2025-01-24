@@ -3,6 +3,10 @@ import { CustomRolePermission } from "../interfaces";
 import { PermissionInputFormat } from "../types";
 import { logger } from "./logger";
 
+
+/**
+ * Retrieves the permission set based on the provided default roles, mapping each role to its associated permission level.
+ */
 export const getPermissionSetFromDefaultRoles = (...roles: Roles[]): CustomRolePermission[] => {
     try {
         const permissionLevelMap = {
@@ -30,6 +34,10 @@ export const getPermissionSetFromDefaultRoles = (...roles: Roles[]): CustomRoleP
     }
 };
 
+
+/**
+ * Retrieves the roles associated with the given permission set by mapping permission levels back to their corresponding roles.
+ */
 export const getRolesFromPermissionSet = (permissions: CustomRolePermission[]): Roles[] => {
     try {
         const permissionLevelMap = {
@@ -64,6 +72,9 @@ export const getRolesFromPermissionSet = (permissions: CustomRolePermission[]): 
 };
 
 
+/**
+ * Formats a permission set for storage in the database by validating and structuring the input.
+ */
 export const formatPermissionSetForDB = (permissionSet: PermissionInputFormat): CustomRolePermission[] => {
     const formattedPermissionSet: CustomRolePermission[] = [];
 

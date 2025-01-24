@@ -2,6 +2,12 @@ import { DateStatus } from "../enums";
 import { DateRange, TimeInHHMM, YYYYMMDD } from "../types";
 import { HHMMregex, YYYYMMDDregex } from "./regex";
 
+
+
+/**
+ * Compares inputed date with current date
+ * @returns {DateStatus} `past`, `present` or `futue` according to the comparison result
+ */
 export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
 
     const currentDate = new Date();
@@ -19,6 +25,11 @@ export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
     }
 }
 
+
+/**
+ * Gets a Date object from the input date and time strings.
+ * @returns {Date} -returns in Date object format
+ */
 export const getDateFromInput = (dateString: YYYYMMDD, timeString: TimeInHHMM): Date => {
     if (!YYYYMMDDregex.test(dateString)) {
         throw new Error("Invalid date format. Expected format: YYYY-MM-DD.");
@@ -32,6 +43,12 @@ export const getDateFromInput = (dateString: YYYYMMDD, timeString: TimeInHHMM): 
     return new Date(dateTimeString);
 }
 
+
+/**
+ * Update time on given Date
+ * @param {Date} date 
+ * @param {TimeInHHMM} timeString - in HH:MM format
+ */
 export const updateHoursAndMinutesInDate = (date: Date, timeString: TimeInHHMM): Date => {
 
     if (!HHMMregex.test(timeString)) {
@@ -43,8 +60,6 @@ export const updateHoursAndMinutesInDate = (date: Date, timeString: TimeInHHMM):
     date.setUTCHours(newHours, newMinutes);
     return date;
 }
-
-
 
 
 /**

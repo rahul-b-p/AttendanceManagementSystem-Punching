@@ -5,6 +5,10 @@ import { IUserData, UserFetchResult, UserInsertArgs, userQuery, UserSearchQuery,
 import { logger } from "../utils";
 
 
+
+/**
+ * Checks if an admin exists in the database.
+*/
 export const checkAdminExists = async (): Promise<boolean> => {
     try {
         const adminExists = await User.exists({ role: Roles.admin });
@@ -15,6 +19,10 @@ export const checkAdminExists = async (): Promise<boolean> => {
     }
 }
 
+
+/**
+ * Validates the uniqueness of an email by checking if any user is registered with the given email address.
+*/
 export const validateEmailUniqueness = async (email: string): Promise<boolean> => {
     try {
         const emailExists = await User.exists({ email });
@@ -25,6 +33,10 @@ export const validateEmailUniqueness = async (email: string): Promise<boolean> =
     }
 }
 
+
+/**
+ * Inserts a new user with required feilds
+*/
 export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
     try {
         const newUser: IUser = new User(user);
@@ -39,6 +51,10 @@ export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
     }
 }
 
+
+/**
+ * Finds an existing user by its unique email adress.
+*/
 export const findUserByEmail = async (email: string): Promise<IUser | null> => {
     try {
         return await User.findOne({ email })
@@ -48,6 +64,10 @@ export const findUserByEmail = async (email: string): Promise<IUser | null> => {
     }
 }
 
+
+/**
+ * Updates an existing user data by its unique id.
+*/
 export const updateUserById = async (_id: string, userToUpdate: UserUpdateArgs): Promise<IUserData | null> => {
     try {
         const updatedUser = await User.findByIdAndUpdate(_id, userToUpdate, { new: true }).lean();
@@ -62,6 +82,10 @@ export const updateUserById = async (_id: string, userToUpdate: UserUpdateArgs):
     }
 };
 
+
+/**
+ * Checks if a refresh token exists for a user by their unique ID.
+ */
 export const checkRefreshTokenExistsById = async (_id: string, refreshToken: string): Promise<boolean> => {
     try {
         const UserExists = await User.exists({ _id, refreshToken });
@@ -72,6 +96,10 @@ export const checkRefreshTokenExistsById = async (_id: string, refreshToken: str
     }
 }
 
+
+/**
+ * Finds a user by its unique ID
+ */
 export const findUserById = async (_id: string): Promise<IUser | null> => {
     try {
         return await User.findById(_id).lean();
@@ -81,6 +109,10 @@ export const findUserById = async (_id: string): Promise<IUser | null> => {
     }
 }
 
+
+/**
+ * Fetches all users using aggregation with support for filtering, sorting, and pagination.
+ */
 export const fetchUsers = async (page: number, limit: number, query: userQuery, sort: UserSortArgs, username?: string): Promise<UserFetchResult | null> => {
     try {
         const skip = (page - 1) * limit;
@@ -155,6 +187,10 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
     }
 };
 
+
+/**
+ * Delets an existing user data by its unique id.
+*/
 export const deleteUserById = async (_id: string): Promise<void> => {
     try {
         const deletedUser = await User.findByIdAndDelete(_id);
@@ -166,6 +202,10 @@ export const deleteUserById = async (_id: string): Promise<void> => {
     }
 }
 
+
+/**
+ * Fetches an existing user along with all their related fields from other collections, while keeping sensitive data hidden.
+*/
 export const getUserData = async (_id: string): Promise<UserToShow> => {
     try {
         const user = await User.findById(_id, { password: 0, refreshToken: 0, __v: 0 }).lean();

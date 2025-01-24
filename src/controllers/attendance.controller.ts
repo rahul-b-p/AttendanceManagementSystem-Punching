@@ -9,7 +9,9 @@ import { isValidObjectId } from "../validators";
 
 
 
-
+/**
+ * Controller function to handle the punch-in attendance request.
+ */
 export const punchInAttendance = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
     try {
         const userId = req.payload?.id as string;
@@ -38,6 +40,10 @@ export const punchInAttendance = async (req: customRequestWithPayload<{}, any, L
     }
 }
 
+
+/**
+ * Controller function to handle the punch-out attendance request.
+ */
 export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
     try {
         const userId = req.payload?.id as string;
@@ -65,6 +71,11 @@ export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, 
     }
 }
 
+
+/**
+ * Controller function to handle the Attendnace Creation.
+ * @protected - This is an admin-only feature.
+ */
 export const createAttendance = async (req: customRequestWithPayload<{ userId: string }, any, createAttendanceBody>, res: Response, next: NextFunction) => {
     try {
         const { userId } = req.params;
@@ -110,6 +121,11 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
     }
 }
 
+
+/**
+ * Controller function to handle the Attendnace Updation.
+ * @protected - This is an admin-only feature.
+ */
 export const updateAttendance = async (req: customRequestWithPayload<{ id: string }, any, updateAttendanceBody>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
@@ -169,6 +185,11 @@ export const updateAttendance = async (req: customRequestWithPayload<{ id: strin
     }
 }
 
+
+/**
+ * Controller function to handle the Attendnace Deletion.
+ * @protected - This is an admin-only feature.
+ */
 export const deleteAttendance = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
@@ -196,6 +217,14 @@ export const deleteAttendance = async (req: customRequestWithPayload<{ id: strin
     }
 }
 
+
+/**
+ * Controller function to handle the attendance data fetch request.
+ * This function processes the attendance data fetch request based on the user's role:
+ * - Admin: Can access all attendance data.
+ * - Manager: Can access attendance data of their assigned office.
+ * - User: Can access only their own attendance data.
+ */
 export const readAllAttendance = async (req: customRequestWithPayload<{}, any, any, AttendanceFilterQuery>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;
@@ -263,6 +292,11 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
     }
 }
 
+
+/**
+ * Controller function to handle the attendance summary request.
+ * @protected - admin or manager previliaged user can only access the feature
+ */
 export const attendanceSummary = async (req: customRequestWithPayload<{}, any, any, AttendanceSummaryQuery>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;

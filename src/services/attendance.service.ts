@@ -6,7 +6,9 @@ import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, Attendan
 import { calculatePageSkip, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
 import { validateAttendanceQuery } from "../validators";
 
-
+/**
+ * Checks whether a punch-in record already exists for the specified user on the given date.
+*/
 export const isPunchInRecordedForDay = async (userId: string, date?: Date): Promise<IAttendance | null> => {
     try {
         let punchIn: any;
@@ -36,6 +38,10 @@ export const isPunchInRecordedForDay = async (userId: string, date?: Date): Prom
     }
 }
 
+
+/**
+ * Inserts a new attendnace data
+*/
 export const insertAttendance = async (attendanceData: AttendancePunchinArgs): Promise<IAttendance> => {
     try {
         const newAttendance = new Attendance(attendanceData);
@@ -49,6 +55,10 @@ export const insertAttendance = async (attendanceData: AttendancePunchinArgs): P
     }
 }
 
+
+/**
+ * update an attendnace data on database using its id, if no attendnace dta found with the id, then it returns null 
+*/
 export const updateAttendanceById = async (_id: string, upddateData: UpdateAttendanceArgs): Promise<IAttendance | null> => {
     try {
         const updatedAttendance = await Attendance.findByIdAndUpdate(_id, upddateData, { new: true });
@@ -62,6 +72,10 @@ export const updateAttendanceById = async (_id: string, upddateData: UpdateAtten
     }
 }
 
+
+/**
+ * find the attendance doccument with given id, otherwise returns null
+*/
 export const findAttendanceById = async (_id: string): Promise<IAttendance | null> => {
     try {
         return await Attendance.findById(_id);
@@ -70,6 +84,13 @@ export const findAttendanceById = async (_id: string): Promise<IAttendance | nul
         throw new Error(error.message);
     }
 }
+
+
+/**
+ * Validates and compares punch-in and punch-out times, 
+ * ensuring chronological correctness based on the provided times or existing attendance,
+ * and handles errors with appropriate logging.
+ */
 
 export const comparePunchInPunchOut = (punchIn?: Date, punchOut?: Date, existingAttendance?: IAttendance): boolean => {
     try {
@@ -95,6 +116,10 @@ export const comparePunchInPunchOut = (punchIn?: Date, punchOut?: Date, existing
     }
 }
 
+
+/**
+ * Deletes an existing attendnace using id, if no existing attendnace id, then returns null
+ */
 export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
     try {
         const deletedUser = await Attendance.findByIdAndDelete(_id);
@@ -252,6 +277,11 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
     }
 }
 
+
+/**
+ * Fetches attendance summary by aggregating,
+ * needs a userId and date range for calculations
+*/
 export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Promise<AttendanceSummary | null> => {
     const { userId, endDate, startDate } = query
     try {

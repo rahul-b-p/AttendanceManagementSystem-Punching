@@ -2,7 +2,9 @@ import { AttendanceSortArgs, AttendanceSortKeys, OfficeSortArgs, OfficeSortKeys,
 
 
 
-
+/**
+ * Maps user sort arguments from sort keys
+*/
 export const getUserSortArgs = (sortKey?: UserSortKeys): UserSortArgs => {
     const sortMapping: Record<UserSortKeys, UserSortArgs> = {
         [UserSortKeys.username]: UserSortArgs.username,
@@ -12,7 +14,9 @@ export const getUserSortArgs = (sortKey?: UserSortKeys): UserSortArgs => {
     return sortMapping[sortKey as UserSortKeys] || UserSortArgs.createAt;
 };
 
-
+/**
+ * Maps office sort arguments from sort keys
+*/
 export const getOfficeSortArgs = (sortKey?: OfficeSortKeys): OfficeSortArgs => {
     const sortMapping: Record<OfficeSortKeys, OfficeSortArgs> = {
         [OfficeSortKeys.officeName]: OfficeSortArgs.officeName,
@@ -22,8 +26,9 @@ export const getOfficeSortArgs = (sortKey?: OfficeSortKeys): OfficeSortArgs => {
     return sortMapping[sortKey as OfficeSortKeys] || OfficeSortArgs.createAt;
 }
 
-
-
+/**
+ * Maps attendnace sort arguments from sort keys
+*/
 export const getAttendanceSortArgs = (sortKey?: AttendanceSortKeys): AttendanceSortArgs => {
     const sortMapping: Record<AttendanceSortKeys, AttendanceSortArgs> = {
         [AttendanceSortKeys.punchIn]: AttendanceSortArgs.punchIn,

@@ -10,7 +10,12 @@ import { Roles, UserSortArgs } from "../enums";
 
 
 
-
+/**
+ * Controller function to create a new user
+ * @protected only admin or manger can access this feature
+ * - admin can create user with any role
+ * - manager can't create admin privilliaged user
+ */
 export const createUser = async (req: customRequestWithPayload<{}, any, UserInsertArgs>, res: Response, next: NextFunction) => {
     try {
         const { email, role } = req.body;
@@ -40,6 +45,14 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
     }
 }
 
+
+/**
+ * Controller function to create a new user
+ * Filter the Users by roles
+ * @protected only admin or manger can access this feature
+ * - admin can read al users
+ * - manager can read assigned users only
+ */
 export const readUsers = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;
@@ -74,6 +87,15 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
     }
 }
 
+
+/**
+ * Controller function to update a user
+ * @param id user id
+ * @protected only admin or manger can access this feature
+ * - admin can update user with any role
+ * - manager can't update admin privilliaged user
+ * - manager can only update users assigned in their manager privilliaged office
+ */
 export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: string }, any, UserUpdateBody>, res: Response, next: NextFunction) => {
     try {
         const { email, role } = req.body;
@@ -131,6 +153,15 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
     }
 }
 
+
+/**
+ * Controller function to delete a user
+ * @param id user id
+ * @protected only admin or manger can access this feature
+ * - admin can create user with any role
+ * - manager can't create admin privilliaged user
+ * - manager can only update users assigned in their manager privilliaged office
+ */
 export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
@@ -152,6 +183,13 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
     }
 }
 
+/**
+ * Controller function to search and read users
+ * Filter and Search the Users by roles
+ * @protected only admin or manger can access this feature
+ * - admin can search al users
+ * - manager can search assigned users only
+ */
 export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery & UserSearchQuery>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;
@@ -188,6 +226,13 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
     }
 }
 
+/**
+ * Controller function to read a specific user
+ * @param id user id
+ * @protected only admin or manger can access this feature
+ * - admin read any user
+ * - manager only read manager privilliaged office employees
+ */
 export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;
@@ -207,6 +252,12 @@ export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: st
     }
 }
 
+
+/**
+ * Controller function to allow a logged-in user to update their own account details.
+ * If the user updates their email,
+ * the account will need re-verification to confirm the new email address.
+ */
 export const updateProfile = async (req: customRequestWithPayload<{}, any, UserUpdateBody>, res: Response, next: NextFunction) => {
     try {
         const { role, email } = req.body;
