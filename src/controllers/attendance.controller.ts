@@ -119,12 +119,28 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new NotFoundError("Requested user not found!");
 
-        if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+        const existingUsersDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
+        const { punchInTime, date, punchOutTime, ...location } = req.body;
 
-        const existingOffice = await findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        let officeId;
+        if (existingUsersDefaultRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
 
-        const { punchInTime, date, punchOutTime, latitude, longitude } = req.body;
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+
+            const isValidLocation = validateLocationWithinInstitutionRadius(location, existingOffice.location, existingOffice.radius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = existingOffice._id.toString();
+        }
+        else {
+            const availableOfficeLocationsWithRadius = await getAllOfficeLocationsAndRadius();
+            if (!availableOfficeLocationsWithRadius) throw new ForbiddenError('No offices are availabe on the system to take punchIn');
+            const isValidLocation = validateLocationWithinMultipleInstitutionsRadius(location, availableOfficeLocationsWithRadius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = isValidLocation.officeId;
+        }
+
 
         const dateStatus = compareDatesWithCurrentDate(date);
         if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't add attendance for future");
@@ -136,11 +152,10 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
 
         const punchOut = getDateFromInput(date, punchOutTime);
 
-        const location: Location = { latitude, longitude };
 
         const insertAttendanceData: AttendancePunchinArgs = {
             userId,
-            officeId: existingUser.officeId.toString(),
+            officeId,
             location,
             punchIn,
             punchOut

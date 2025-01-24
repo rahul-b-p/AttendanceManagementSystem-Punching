@@ -56,6 +56,15 @@ export const validateLocationWithinInstitutionRadius = (personLocation: Location
 }
 
 
+
+/**
+ * Validates whether a person's location falls within the radius of any institution's location.
+ *
+ * @param personLocation - The location of the person, including latitude and longitude.
+ * @param allInstitutionLocationsWithRadius - An array of institution locations with their respective radius and IDs.
+ * @returns { { officeId: string } | null } - Returns the ID of the first institution where the person's location is valid,
+ *                                            or `null` if no institution matches the criteria.
+ */
 export const validateLocationWithinMultipleInstitutionsRadius = (personLocation: Location, allInstitutionLocationsWithRadius: LocationWithRadius[]): { officeId: string } | null => {
     try {
         const matchingInstitution = allInstitutionLocationsWithRadius.find(({ _id, radius, ...institutionLocation }) =>
