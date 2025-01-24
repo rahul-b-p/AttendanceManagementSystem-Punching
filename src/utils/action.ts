@@ -1,8 +1,10 @@
 import { Actions } from "../enums"
 import { logger } from "./logger";
 
-
-export const getAction = (method: string):Actions => {
+/**
+ * Determines the appropriate action based on the HTTP request method. 
+ */
+export const getActionFromMethod = (method: string): Actions => {
     try {
         let Action
         switch (method) {
@@ -14,7 +16,9 @@ export const getAction = (method: string):Actions => {
                 break;
             case 'DELETE': Action = Actions.delete;
                 break;
-            default: throw new Error("Can't Fetch request method");
+            case 'PATCH': Action = Actions.update;
+                break;
+            default: throw new Error("Invalid method");
         }
         return Action as Actions;
     } catch (error: any) {

@@ -3,7 +3,9 @@ import { CustomError } from "../errors";
 import { ZodError } from "zod";
 
 
-
+/**
+ * Middleware function to handle Errors
+*/
 export const ErrorHandler: ErrorRequestHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
 
     if (err instanceof CustomError) {

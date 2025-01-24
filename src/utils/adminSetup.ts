@@ -6,8 +6,10 @@ import { UserInsertArgs } from "../types";
 import { checkEmailValidity } from "../validators";
 import { logger } from "./logger";
 
-
-export const createDefaultAdmin = async () => {
+/**
+ * Creates a default admin using system admin credentials from the environment variables, if no admin exists in the system.
+ */
+export const createDefaultAdmin = async ():Promise<void> => {
     try {
 
         const isAdminExists = await checkAdminExists()

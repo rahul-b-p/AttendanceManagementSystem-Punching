@@ -4,7 +4,7 @@ import { Entry } from 'node-geocoder';
 
 
 
-
+// geocode an adress to get its geographical details
 export const geocodeAddress = async (address: string): Promise<Entry | null> => {
     try {
         const geocodeResponse = await geocoder.geocode(address);

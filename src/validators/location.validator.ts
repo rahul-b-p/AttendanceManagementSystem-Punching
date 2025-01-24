@@ -4,7 +4,9 @@ import { Adress, Location } from "../types";
 import { logger } from "../utils";
 
 
-
+/**
+ *  Validates an address by geocoding it and comparing the resulting location coordinates with the provided location.
+ */
 export const validateAdressWithLocation = async (adress: Adress, providedLocation: Location) => {
     try {
         const adressString = `${adress.city},${adress.state},${adress.zip_code}`;

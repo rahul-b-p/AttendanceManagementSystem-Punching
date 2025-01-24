@@ -6,7 +6,9 @@ import { generateOtp } from "./otp.service";
 
 
 
-
+/**
+ * Sends an email from the application's host address to the specified recipient with the provided message content.
+ */
 const sendEmail = async (emailOptions: EmailOptions): Promise<SentMessageInfo> => {
     try {
         return await transporter.sendMail({
@@ -19,6 +21,10 @@ const sendEmail = async (emailOptions: EmailOptions): Promise<SentMessageInfo> =
     }
 }
 
+
+/**
+ * Generates an OTP for initial login or account verification and sends it to the specified recipient's email address.
+ */
 export const sendOtpForInitialLogin = async (userId: string, email: string): Promise<SentMessageInfo> => {
     try {
         const otp = await generateOtp(userId);
@@ -37,6 +43,9 @@ export const sendOtpForInitialLogin = async (userId: string, email: string): Pro
 };
 
 
+/**
+ * Generates an OTP for password reset and sends it to the specified recipient's email address.
+ */
 export const sendOtpForPasswordReset = async (userId: string, email: string): Promise<SentMessageInfo> => {
     try {
         const otp = await generateOtp(userId);
@@ -54,6 +63,10 @@ export const sendOtpForPasswordReset = async (userId: string, email: string): Pr
     }
 };
 
+
+/**
+ * Sends an account creation acknowledgment notification to the recipient's email address.
+ */
 export const sendUserCreationNotification = async (user: IUserData): Promise<SentMessageInfo> => {
     try {
         const { role, email, username, phone } = user;
@@ -97,6 +110,10 @@ export const sendUserCreationNotification = async (user: IUserData): Promise<Sen
     }
 }
 
+
+/**
+ * Sends an account updation acknowledgment notification to the recipient's email address.
+ */
 export const sendUserUpdationNotification = async (to: string, updatedUser: IUserData, existingEmail?: string,): Promise<SentMessageInfo> => {
     try {
         const emailContent = `

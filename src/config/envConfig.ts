@@ -19,12 +19,16 @@ const requiredEnvVariables = [
     'MIN_THRESHOLD'
 ];
 
+// Checks if the required environment variables are attached to the application.
+// Throws an error if any required environment variable is missing.
 requiredEnvVariables.forEach((envVar) => {
     if (!process.env[envVar]) {
         throw new Error(`Missing required environment variable: ${envVar}. Please ensure it is defined in your .env file or set in the environment.`);
     }
 });
 
+
+// exporting all enviroment variables
 export const MONGODB_URI = process.env.MONGODB_URI as string;
 export const HASH_SALT_ROUNDS = process.env.HASH_SALT_ROUNDS as string;
 export const HASH_ALGORITHM = process.env.HASH_ALGORITHM as string;

@@ -8,6 +8,11 @@ import { isValidObjectId } from "../validators";
 
 
 
+
+/**
+ * Controller function to create a custom role
+ * @protected - only admin can access this feature
+ */
 export const createCustomRole = async (req: customRequestWithPayload<{}, any, InsertRoleArgs>, res: Response, next: NextFunction) => {
     try {
         const { role } = req.body;
@@ -23,6 +28,11 @@ export const createCustomRole = async (req: customRequestWithPayload<{}, any, In
     }
 }
 
+
+/**
+ * Controller function to read all custom roles
+ * @protected - only admin can access this feature
+ */
 export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, any, CustomRolesFilter>, res: Response, next: NextFunction) => {
     try {
         const { pageNo, pageLimit } = req.query;
@@ -44,6 +54,12 @@ export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, 
     }
 }
 
+
+/**
+ * Controller function to update a custom role
+ * @param id -role id
+ * @protected - only admin can access this feature
+ */
 export const updateCustomRole = async (req: customRequestWithPayload<{ id: string }, any, UpdateRoleArgs>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
@@ -67,6 +83,12 @@ export const updateCustomRole = async (req: customRequestWithPayload<{ id: strin
     }
 }
 
+
+/**
+ * Controller function to delete a custom role
+ * @param id -role id
+ * @protected - only admin can access this feature
+ */
 export const deleteCustomRole = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;

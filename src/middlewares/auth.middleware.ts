@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../errors";
-import { logger, getPermissionSetFromDefaultRoles, getAction } from "../utils";
+import { logger, getPermissionSetFromDefaultRoles, getActionFromMethod } from "../utils";
 import { customRequestWithPayload } from "../interfaces";
 import { isValidObjectId, permissionValidator } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
@@ -9,7 +9,9 @@ import { Roles } from "../enums";
 
 
 
-
+/**
+ * Middleware function to Authorize Access Token by JWT
+*/
 export const accessTokenAuth = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
     try {
         const AccessToken = req.headers.authorization?.split(' ')[1];
@@ -29,6 +31,9 @@ export const accessTokenAuth = async (req: customRequestWithPayload, res: Respon
     }
 };
 
+/**
+ * Middleware function to Authorize Access Token by JWT
+*/
 export const refreshTokenAuth = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
     try {
         const RefreshToken = req.headers.authorization?.split(' ')[1];
@@ -52,6 +57,11 @@ export const refreshTokenAuth = async (req: customRequestWithPayload, res: Respo
     }
 };
 
+
+/**
+ * Middleware function to Authorize user Role
+ * @param {Roles} -user role
+*/
 export const roleAuth = (...allowedRole: Roles[]) => {
     return async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
         try {
@@ -64,7 +74,7 @@ export const roleAuth = (...allowedRole: Roles[]) => {
             const { role } = existingUser;
             if (!Object.values(Roles).includes(role as Roles)) {
                 const permissionset = getPermissionSetFromDefaultRoles(...allowedRole);
-                const requiredAction = getAction(req.method);
+                const requiredAction = getActionFromMethod(req.method);
                 const isPermitted = await permissionValidator(permissionset, role, requiredAction);
                 if (!isPermitted) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
             }

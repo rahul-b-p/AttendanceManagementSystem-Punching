@@ -8,11 +8,14 @@ import { roleController } from "../controllers";
 
 export const router = Router();
 
-
+// API to cretae a custom role -- only for admin
 router.post('/', validateReqBody(createCustomRoleSchema), roleController.createCustomRole);
 
+// API to read all custom roles -- only for admin
 router.get('/', validateReqQuery(roleFilterSchema), roleController.readAllCustomRoles);
 
+// API to update an existing xustom role -- only for admin
 router.put('/:id', validateReqBody(updateCustomRoleSchema), roleController.updateCustomRole);
 
+// API to delete an existing custom role -- only fo admin
 router.delete('/:id', roleController.deleteCustomRole);

@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { Adress, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOfficeArgs, updateOfficeInputBody } from "../types";
 import { isValidObjectId, permissionValidator, validateAdressWithLocation } from "../validators";
-import { getAction, getOfficeSortArgs, getPermissionSetFromDefaultRoles, logger, pagenate, sendCustomResponse } from "../utils";
+import { getActionFromMethod, getOfficeSortArgs, getPermissionSetFromDefaultRoles, logger, pagenate, sendCustomResponse } from "../utils";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
 import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById, softDeleteOfficeById } from "../services";
 import { Actions, FetchType, Roles } from "../enums";
@@ -10,8 +10,11 @@ import { Types } from "mongoose";
 
 
 
-
-
+/**
+ * Controller function to handle the creation of a new office.
+ * Requested location should validated by the adress using geoCoder
+ * @protected - only admin can access this feature
+ */
 export const createOffice = async (req: customRequestWithPayload<{}, any, CreateOfficeInputBody>, res: Response, next: NextFunction) => {
     try {
         const { officeName, street, city, state, zip_code, latitude, longitude, radius } = req.body;
@@ -33,6 +36,11 @@ export const createOffice = async (req: customRequestWithPayload<{}, any, Create
     }
 }
 
+
+/**
+ * Controller function to handle the read all offices.
+ * @protected - only admin can access this feature
+ */
 export const readOffices = async (req: customRequestWithPayload<{}, any, any, OfficeFilterBody>, res: Response, next: NextFunction) => {
     try {
         const { city, pageLimit, pageNo, sortKey, state } = req.query;
@@ -58,6 +66,12 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
     }
 }
 
+
+/**
+ * Controller function to update an existing office.
+ * @param - office id
+ * @protected - only admin can access this feature
+ */
 export const updateOffice = async (req: customRequestWithPayload<{ id: string }, any, updateOfficeInputBody>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
@@ -113,6 +127,13 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
     }
 }
 
+
+/**
+ * Controller function to delete an existing office.
+ * Its a soft deletion, can found the deleted data on trash.
+ * @param - office id
+ * @protected - only admin can access this feature
+ */
 export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
@@ -129,6 +150,15 @@ export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>
     }
 }
 
+
+/**
+ * Controller function to assign a user as employee or manager in office.
+ * @param officeId
+ * @param userId
+ * @protected  only admin and manager can access this feature
+ * - admin: can assign both managers and employees
+ * - manager: can assign employees only
+ */
 export const assignToOffice = async (req: customRequestWithPayload<{ officeId: string, userId: string, role: Roles }>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;
@@ -150,7 +180,7 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
 
             if (exisingUser.role !== Roles.admin) {
                 const permissionSet = getPermissionSetFromDefaultRoles(Roles.admin);
-                const action = getAction(req.method);
+                const action = getActionFromMethod(req.method);
                 const isPermitted = await permissionValidator(permissionSet, exisingUser.role, action);
                 if (!isPermitted) throw new ForbiddenError("Insufficent role privilleages");
             }
@@ -185,6 +215,15 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
     }
 }
 
+
+/**
+ * Controller function to remove a user from office.
+ * @param officeId
+ * @param userId
+ * @protected  only admin and manager can access this feature
+ * - admin: can remove both managers and employees
+ * - manager: can remove employees only
+ */
 export const removeFromOffice = async (req: customRequestWithPayload<{ officeId: string, userId: string, role: Roles }>, res: Response, next: NextFunction) => {
     try {
         const ownerId = req.payload?.id as string;
@@ -204,7 +243,7 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
 
             if (exisingUser.role !== Roles.admin) {
                 const permissionSet = getPermissionSetFromDefaultRoles(Roles.admin);
-                const action = getAction(req.method);
+                const action = getActionFromMethod(req.method);
                 const isPermitted = await permissionValidator(permissionSet, exisingUser.role, action);
                 if (!isPermitted) throw new ForbiddenError("Insufficent role privilleages");
             }
@@ -223,6 +262,11 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
     }
 }
 
+
+/**
+ * Controller function to fetch office trash data
+ * @protected - only admin can access this feature
+ */
 export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, any, OfficeFilterBody>, res: Response, next: NextFunction) => {
     try {
         const { city, pageLimit, pageNo, sortKey, state } = req.query;
@@ -248,6 +292,12 @@ export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, an
     }
 }
 
+
+
+/**
+ * Controller function to delete office trash data
+ * @protected - only admin can access this feature
+ */
 export const deleteOfficeTrash = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;

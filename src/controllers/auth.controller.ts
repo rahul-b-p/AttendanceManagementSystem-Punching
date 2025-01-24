@@ -9,8 +9,10 @@ import { customRequestWithPayload } from "../interfaces";
 
 
 
-
-
+/**
+ * Controller function to handle the user login request.
+ * Send OTP to registered email, if the account not verified, usually on first time login
+ */
 export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, next: NextFunction) => {
     try {
         const { email, password } = req.body;
@@ -52,6 +54,10 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
     }
 }
 
+
+/**
+ * Controller function to handle the token refresh request.
+ */
 export const refresh = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
     try {
         const id = req.payload?.id;
@@ -73,6 +79,10 @@ export const refresh = async (req: customRequestWithPayload, res: Response, next
     }
 }
 
+
+/**
+ * Controller function to handle the user logout request.
+ */
 export const logout = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
     try {
         const id = req.payload?.id;
@@ -97,6 +107,11 @@ export const logout = async (req: customRequestWithPayload, res: Response, next:
     }
 }
 
+
+/**
+ * Controller function to handle verify the first time login by otp validation.
+ * Saving new password to the user
+ */
 export const firstLoginOtpValidation = async (req: Request<{}, any, UserOtpVerifyBody>, res: Response, next: NextFunction) => {
     try {
         const { otp, email, confirmPassword } = req.body;
@@ -126,6 +141,11 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserOtpVerif
     }
 }
 
+
+/**
+ * Controller function to handle the user forgot password request, and generates OTP.
+ * The resetPassword feature should be used to complete the password reset process.
+ */
 export const forgotPassword = async (req: Request<{}, any, { email: string }>, res: Response, next: NextFunction) => {
     try {
         const { email } = req.body;
@@ -147,6 +167,11 @@ export const forgotPassword = async (req: Request<{}, any, { email: string }>, r
     }
 }
 
+
+/**
+ * Controller function to reset the user password by OTP validation
+ * The forgotPassword function should be used to generate and send the OTP to the user.
+ */
 export const resetPassword = async (req: Request<{}, any, UserOtpVerifyBody>, res: Response, next: NextFunction) => {
     try {
         const { otp, email, confirmPassword } = req.body;

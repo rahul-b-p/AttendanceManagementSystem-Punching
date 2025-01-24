@@ -1,5 +1,10 @@
 import * as dns from 'dns';
 
+
+
+/**
+ * Checks the validity of an email address by verifying the existence of its domain's mail exchange (MX) records.
+*/
 export const checkEmailValidity = (email: string): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         const domain = email.split('@')[1];

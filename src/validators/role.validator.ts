@@ -4,7 +4,9 @@ import { logger } from "../utils";
 
 
 
-
+/**
+ * Validates whether the given role is a default role or a custom role.
+*/
 export const validateRole = async (role: string): Promise<boolean> => {
     try {
         if (Object.values(Roles).includes(role as Roles)) {

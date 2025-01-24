@@ -7,6 +7,10 @@ import { logger } from "../utils";
 import { updateUserById } from "./user.service";
 
 
+
+/**
+ * Checks wether the location is unique on database
+ */
 export const validateLocationUniqueness = async (location: Location): Promise<Boolean> => {
     try {
         const officeExistsOnLocation = await Office.exists({ location, isDeleted: false });
@@ -17,6 +21,10 @@ export const validateLocationUniqueness = async (location: Location): Promise<Bo
     }
 }
 
+
+/**
+ * Insert a new office with required feilds
+ */
 export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffice> => {
     try {
         const newOffice = new Office(officeData);
@@ -31,6 +39,10 @@ export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffic
     }
 }
 
+
+/**
+ * Fetches office data using aggregation with support for filtering, sorting, and pagination.
+ */
 export const fetchOffices = async (fetchType: FetchType, page: number, limit: number, query: officeQuery, sort: OfficeSortArgs): Promise<OfficeFetchResult | null> => {
     try {
         const skip = (page - 1) * limit;
@@ -126,6 +138,10 @@ export const fetchOffices = async (fetchType: FetchType, page: number, limit: nu
     }
 }
 
+
+/**
+ *  Finds an existing office by its unique ID. if not found, then its returns null 
+ */ 
 export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
     try {
         return await Office.findById(_id);
@@ -135,6 +151,10 @@ export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
     }
 }
 
+
+/**
+ *  Updates an existing office by its unique ID. if not found existing data, then its returns null 
+ */ 
 export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOfficeArgs): Promise<IOffice | null> => {
     try {
         const updatedOffice = await Office.findByIdAndUpdate(_id, updateOfficeData, { new: true }).lean();
@@ -148,6 +168,11 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
     }
 }
 
+
+/**
+ *  Performs soft deletion of office by its unique ID by setting the isDeleted flag true 
+ *  @returns {boolean} - Returns `true` if the office exists and the deletion flag is successfully set; `false` if the office with the given ID is not found.
+ */ 
 export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
         const existingOffice = await findOfficeById(_id);
@@ -167,6 +192,10 @@ export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
     }
 }
 
+
+/**
+ *  Updates an existing office by its unique ID to assign a user to either the `managers` or `employees` array field based on the provided role.
+ */ 
 export const setUserToOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
     try {
         if (!userId) {
@@ -196,6 +225,10 @@ export const setUserToOfficeById = async (_id: string, userId: string, role: Rol
     }
 }
 
+
+/**
+ *  Updates an existing office by its unique ID to remove a user from either the `managers` or `employees` array field based on the provided role.
+ */ 
 export const unsetUserFromOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
     try {
         if (!userId) throw new Error('UserId must be provided.');
@@ -224,6 +257,11 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
     }
 }
 
+
+/**
+ *  Deletes an existing attendnace data by its unique id
+ *  @returns {boolean} - Returns `true` if the office exists and deleted; `false` if the office with the given ID is not found.
+ */ 
 export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
         const trashExistsOnId = await Office.exists({ _id, isDeleted: true });
@@ -234,5 +272,23 @@ export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
+    }
+}
+
+
+/**
+ * Checks if a manager is authorized for a given employee by verifying their existence in the same office.
+ * The manager must be listed in the `managers` array and the employee in the `employees` array of the same office.
+ */
+export const isManagerAuthorizedForEmployee = async (employeeId: string, managerId: string): Promise<boolean> => {
+    try {
+        const officeExists = await Office.exists({
+            managers: { $in: [managerId] },
+            employees: { $in: [employeeId] }
+        });
+        return officeExists !== null;
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message)
     }
 }

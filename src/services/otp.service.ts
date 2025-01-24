@@ -2,6 +2,10 @@ import { Otp } from "../models";
 import { logger } from "../utils"
 
 
+
+/**
+ * Generates an OTP for the given user and saves it in the database with a 5-minute expiration time.
+ */
 export const generateOtp = async (userId: string): Promise<string> => {
     try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -18,6 +22,10 @@ export const generateOtp = async (userId: string): Promise<string> => {
     }
 }
 
+
+/**
+ * Generates an OTP for the given user and saves it in the database with a 5-minute expiration time.
+ */
 export const verifyOtp = async (userId: string, otp: string): Promise<boolean> => {
     try {
         const otpExisted = await Otp.exists({ userId, otp });

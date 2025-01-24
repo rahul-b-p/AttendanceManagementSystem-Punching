@@ -5,7 +5,9 @@ import { logger } from "../utils";
 
 
 
-
+/**
+ * Validates whether the required action is permitted for a specific role, based on the provided permission set.
+ */
 export const permissionValidator = async (permissionSet: CustomRolePermission[], role: string, requiredAction: Actions): Promise<boolean> => {
     try {
         const customRole = await findCustomRole(role);

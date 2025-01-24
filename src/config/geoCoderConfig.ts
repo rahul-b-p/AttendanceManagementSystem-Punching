@@ -1,5 +1,6 @@
 import NodeGeocoder from 'node-geocoder';import { GEOCODING_API_KEY } from './envConfig';
 
+// Configuring node-geocoder
 
 const options: NodeGeocoder.Options = {
     provider: 'opencage',
