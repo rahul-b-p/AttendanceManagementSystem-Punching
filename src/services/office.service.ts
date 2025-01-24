@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { FetchType, OfficeSortArgs, Roles } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
-import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData } from "../types";
+import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData, LocationWithRadius } from "../types";
 import { logger } from "../utils";
 import { updateUserById } from "./user.service";
 
@@ -141,7 +141,7 @@ export const fetchOffices = async (fetchType: FetchType, page: number, limit: nu
 
 /**
  *  Finds an existing office by its unique ID. if not found, then its returns null 
- */ 
+ */
 export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
     try {
         return await Office.findById(_id);
@@ -154,7 +154,7 @@ export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
 
 /**
  *  Updates an existing office by its unique ID. if not found existing data, then its returns null 
- */ 
+ */
 export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOfficeArgs): Promise<IOffice | null> => {
     try {
         const updatedOffice = await Office.findByIdAndUpdate(_id, updateOfficeData, { new: true }).lean();
@@ -172,7 +172,7 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
 /**
  *  Performs soft deletion of office by its unique ID by setting the isDeleted flag true 
  *  @returns {boolean} - Returns `true` if the office exists and the deletion flag is successfully set; `false` if the office with the given ID is not found.
- */ 
+ */
 export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
         const existingOffice = await findOfficeById(_id);
@@ -195,7 +195,7 @@ export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
 
 /**
  *  Updates an existing office by its unique ID to assign a user to either the `managers` or `employees` array field based on the provided role.
- */ 
+ */
 export const setUserToOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
     try {
         if (!userId) {
@@ -228,7 +228,7 @@ export const setUserToOfficeById = async (_id: string, userId: string, role: Rol
 
 /**
  *  Updates an existing office by its unique ID to remove a user from either the `managers` or `employees` array field based on the provided role.
- */ 
+ */
 export const unsetUserFromOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
     try {
         if (!userId) throw new Error('UserId must be provided.');
@@ -261,7 +261,7 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
 /**
  *  Deletes an existing attendnace data by its unique id
  *  @returns {boolean} - Returns `true` if the office exists and deleted; `false` if the office with the given ID is not found.
- */ 
+ */
 export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     try {
         const trashExistsOnId = await Office.exists({ _id, isDeleted: true });
@@ -290,5 +290,32 @@ export const isManagerAuthorizedForEmployee = async (employeeId: string, manager
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message)
+    }
+}
+
+
+/**
+ * Fetches locations of all offices as array
+ */
+export const getAllOfficeLocationsAndRadius = async (): Promise<LocationWithRadius[] | null> => {
+    try {
+        const officeLocations = await Office.aggregate([
+            {
+                $match: { isDeleted: false },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    latitude: "$location.latitude",
+                    longitude: "$location.longitude",
+                    radius: "$radius",
+                },
+            }
+        ]);
+        if (officeLocations.length <= 0) return null;
+        else return officeLocations as LocationWithRadius[]
+    } catch (error: any) {
+        logger.error(error);
+        throw new Error(error.message);
     }
 }

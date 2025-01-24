@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { attendanceController } from "../controllers";
 import { roleAuth, validateReqBody, validateReqQuery } from "../middlewares";
-import { attendnaceFilterQuerySchema, attendnaceSummaryQuerySchema, createAttendanceSchema, punchInSchema, updateAttendanceSchema } from "../schemas";
+import { attendnaceFilterQuerySchema, attendnaceSummaryQuerySchema, createAttendanceSchema, attendnacePunchSchema, updateAttendanceSchema } from "../schemas";
 import { Roles } from "../enums";
 
 
@@ -9,10 +9,10 @@ import { Roles } from "../enums";
 export const router = Router();
 
 // API to punchin Attendance by a user
-router.post('/punchIn', validateReqBody(punchInSchema), attendanceController.punchInAttendance);
+router.post('/punchIn', validateReqBody(attendnacePunchSchema), attendanceController.punchInAttendance);
 
 // API to punchout Attendnace by a user
-router.put('/punchOut', attendanceController.punchOutAttendance);
+router.put('/punchOut', validateReqBody(attendnacePunchSchema), attendanceController.punchOutAttendance);
 
 // API to create Attendnace data for a specific user -- only for admin
 router.post('/:userId', roleAuth(Roles.admin), validateReqBody(createAttendanceSchema), attendanceController.createAttendance);

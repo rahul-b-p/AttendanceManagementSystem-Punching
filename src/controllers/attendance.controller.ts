@@ -2,10 +2,10 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IAttendance, IUser } from "../interfaces";
 import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus, Roles } from "../enums";
-import { isValidObjectId } from "../validators";
+import { isValidObjectId, validateLocationWithinInstitutionRadius, validateLocationWithinMultipleInstitutionsRadius } from "../validators";
 
 
 
@@ -18,17 +18,36 @@ export const punchInAttendance = async (req: customRequestWithPayload<{}, any, L
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new AuthenticationError();
 
-        if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+        const userRoleAsDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
 
-        const existingOffice = await findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        const requestedUserLocation = req.body;
+
+        let officeId;
+
+        if (userRoleAsDefaultRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+
+            const isValidLocation = validateLocationWithinInstitutionRadius(requestedUserLocation, existingOffice.location, existingOffice.radius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = existingOffice._id.toString();
+        }
+        else {
+            const availableOfficeLocationsWithRadius = await getAllOfficeLocationsAndRadius();
+            if (!availableOfficeLocationsWithRadius) throw new ForbiddenError('No offices are availabe on the system to take punchIn');
+            const isValidLocation = validateLocationWithinMultipleInstitutionsRadius(requestedUserLocation, availableOfficeLocationsWithRadius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = isValidLocation.officeId;
+        }
 
         const hasPunchIn = await isPunchInRecordedForDay(userId);
         if (hasPunchIn) throw new ConflictError('You have already punch in once on the day');
 
         const newAttendance: AttendancePunchinArgs = {
             userId,
-            officeId: existingUser.officeId.toString(),
+            officeId,
             location: req.body,
         }
         const addedAttendance = await insertAttendance(newAttendance);
@@ -50,10 +69,25 @@ export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, 
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new AuthenticationError();
 
-        if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+        const userRoleAsDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
 
-        const existingOffice = await findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        const requestedUserLocation = req.body;
+
+        if (userRoleAsDefaultRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+
+            const isValidLocation = validateLocationWithinInstitutionRadius(requestedUserLocation, existingOffice.location, existingOffice.radius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+        }
+        else {
+            const availableOfficeLocationsWithRadius = await getAllOfficeLocationsAndRadius();
+            if (!availableOfficeLocationsWithRadius) throw new ForbiddenError('No offices are availabe on the system to take punchIn');
+            const isValidLocation = validateLocationWithinMultipleInstitutionsRadius(requestedUserLocation, availableOfficeLocationsWithRadius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+        }
 
         const hasPunchIn = await isPunchInRecordedForDay(userId);
         if (!hasPunchIn) throw new ConflictError("You should punchIn before punchOut");
@@ -85,12 +119,28 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new NotFoundError("Requested user not found!");
 
-        if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+        const existingUsersDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
+        const { punchInTime, date, punchOutTime, ...location } = req.body;
 
-        const existingOffice = await findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        let officeId;
+        if (existingUsersDefaultRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
 
-        const { punchInTime, date, punchOutTime, latitude, longitude } = req.body;
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+
+            const isValidLocation = validateLocationWithinInstitutionRadius(location, existingOffice.location, existingOffice.radius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = existingOffice._id.toString();
+        }
+        else {
+            const availableOfficeLocationsWithRadius = await getAllOfficeLocationsAndRadius();
+            if (!availableOfficeLocationsWithRadius) throw new ForbiddenError('No offices are availabe on the system to take punchIn');
+            const isValidLocation = validateLocationWithinMultipleInstitutionsRadius(location, availableOfficeLocationsWithRadius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = isValidLocation.officeId;
+        }
+
 
         const dateStatus = compareDatesWithCurrentDate(date);
         if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't add attendance for future");
@@ -102,11 +152,10 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
 
         const punchOut = getDateFromInput(date, punchOutTime);
 
-        const location: Location = { latitude, longitude };
 
         const insertAttendanceData: AttendancePunchinArgs = {
             userId,
-            officeId: existingUser.officeId.toString(),
+            officeId,
             location,
             punchIn,
             punchOut
@@ -129,56 +178,80 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
 export const updateAttendance = async (req: customRequestWithPayload<{ id: string }, any, updateAttendanceBody>, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const isValidId = isValidObjectId(id);
-        if (!isValidId) throw new BadRequestError("inValidUserId provided");
+        if (!isValidObjectId(id)) throw new BadRequestError("Invalid attendance ID provided.");
 
         const existingAttendance = await findAttendanceById(id);
-        if (!existingAttendance) throw new NotFoundError('Requested Attendance Data not found!');
+        if (!existingAttendance) throw new NotFoundError("Attendance record not found.");
 
         const existingUser = await findUserById(existingAttendance.userId.toString());
-        if (!existingUser) throw new Error("Not Found the user data of existing attendance Feild!");
+        if (!existingUser) throw new NotFoundError("User associated with attendance record not found.");
+
+        const userDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
 
         if (existingUser.officeId) {
             const existingOffice = await findOfficeById(existingUser.officeId.toString());
-            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+            if (!existingOffice) throw new Error("Office ID on user record does not exist in the system.");
         }
 
         const { punchInTime, date, punchOutTime, latitude, longitude } = req.body;
-
         const updateAttendanceArgs: UpdateAttendanceArgs = {};
-        let hasPunchIn: IAttendance | null;
+
         if (date) {
-            const dateStatus = compareDatesWithCurrentDate(date);
-            if (dateStatus == DateStatus.Future) throw new BadRequestError("Can't update to a future date");
+            if (compareDatesWithCurrentDate(date) === DateStatus.Future) {
+                throw new BadRequestError("Cannot update attendance to a future date.");
+            }
 
             if (punchInTime) {
                 updateAttendanceArgs.punchIn = getDateFromInput(date, punchInTime);
-                hasPunchIn = await isPunchInRecordedForDay(existingAttendance.userId.toString(), updateAttendanceArgs.punchIn);
-                logger.info(hasPunchIn);
-                if (hasPunchIn) throw new ConflictError("User has existing Attendance data on given date, can't update into this date");
+                const hasExistingPunchIn = await isPunchInRecordedForDay(existingAttendance.userId.toString(), updateAttendanceArgs.punchIn);
+                if (hasExistingPunchIn) {
+                    throw new ConflictError("Attendance already exists for the given date.");
+                }
             }
 
             updateAttendanceArgs.punchOut = punchOutTime ? getDateFromInput(date, punchOutTime) : undefined;
-        }
-        else {
+        } else {
             if (punchInTime) {
-                updateAttendanceArgs.punchIn = updateHoursAndMinutesInDate(existingAttendance.punchIn, punchInTime)
+                updateAttendanceArgs.punchIn = updateHoursAndMinutesInDate(existingAttendance.punchIn, punchInTime);
             }
 
             if (punchOutTime) {
-                updateAttendanceArgs.punchOut = updateHoursAndMinutesInDate(existingAttendance.punchIn, punchOutTime)
+                updateAttendanceArgs.punchOut = updateHoursAndMinutesInDate(existingAttendance.punchIn, punchOutTime);
             }
         }
 
-        const isPunchoutAfterPunchIn = comparePunchInPunchOut(updateAttendanceArgs.punchIn, updateAttendanceArgs.punchOut, existingAttendance)
-        if (!isPunchoutAfterPunchIn) throw new ConflictError("Can't update feilds as punchOut time after punchIntime")
+        if (updateAttendanceArgs.punchOut || existingAttendance.punchOut) {
+            if (!comparePunchInPunchOut(updateAttendanceArgs.punchIn, updateAttendanceArgs.punchOut, existingAttendance)) {
+                throw new ConflictError("Punch-out time must be after punch-in time.");
+            }
+        }
 
         if (latitude && longitude) {
             updateAttendanceArgs.location = { latitude, longitude };
+
+            if (userDefaultRole !== Roles.admin) {
+                if (!existingUser.officeId) throw new ForbiddenError("User is not assigned to any office.");
+
+                const existingOffice = await findOfficeById(existingUser.officeId.toString());
+                if (!existingOffice) throw new Error("Office ID on user record does not exist in the system.");
+
+                if (!validateLocationWithinInstitutionRadius({ latitude, longitude }, existingOffice.location, existingOffice.radius)) {
+                    throw new ForbiddenError("Invalid location for marking attendance.");
+                }
+            } else {
+                const availableOffices = await getAllOfficeLocationsAndRadius();
+                if (!availableOffices || availableOffices.length === 0) {
+                    throw new ForbiddenError("No office locations available for validation.");
+                }
+
+                if (!validateLocationWithinMultipleInstitutionsRadius({ latitude, longitude }, availableOffices)) {
+                    throw new ForbiddenError("Invalid location for marking attendance.");
+                }
+            }
         }
 
-        const updatedAttendnaceData = await updateAttendanceById(existingAttendance._id.toString(), updateAttendanceArgs);
-        res.status(200).json(await sendCustomResponse("updated given Attendnace", updatedAttendnaceData));
+        const updatedAttendance = await updateAttendanceById(existingAttendance._id.toString(), updateAttendanceArgs);
+        res.status(200).json(await sendCustomResponse("Attendance updated successfully.", updatedAttendance));
     } catch (error) {
         logger.error(error);
         next(error);
