@@ -16,6 +16,7 @@
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "geolib": "^3.3.4",
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.11.17",
     "mongoose": "^8.9.5",

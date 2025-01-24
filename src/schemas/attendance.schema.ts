@@ -6,7 +6,7 @@ import { AttendanceSortKeys, Days } from "../enums";
 
 
 
-export const punchInSchema = z.object({
+export const attendnacePunchSchema = z.object({
     latitude: z.number({ message: "latitude required" }),
     longitude: z.number({ message: "longitude required" })
 }).strict();

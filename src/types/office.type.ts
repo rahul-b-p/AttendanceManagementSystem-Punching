@@ -54,3 +54,8 @@ export type OfficeWithUserData = Omit<IOffice, ' managers' | 'employees'> & {
     managers: UserToShow[],
     employees: UserToShow[]
 }
+
+export type LocationWithRadius = Location & {
+    _id: Types.ObjectId;
+    radius: number;
+}

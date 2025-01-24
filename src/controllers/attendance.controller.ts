@@ -2,10 +2,10 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IAttendance, IUser } from "../interfaces";
 import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInDate } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
+import { comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, isPunchInRecordedForDay, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus, Roles } from "../enums";
-import { isValidObjectId } from "../validators";
+import { isValidObjectId, validateLocationWithinInstitutionRadius, validateLocationWithinMultipleInstitutionsRadius } from "../validators";
 
 
 
@@ -18,17 +18,36 @@ export const punchInAttendance = async (req: customRequestWithPayload<{}, any, L
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new AuthenticationError();
 
-        if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+        const userRoleAsDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
 
-        const existingOffice = await findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        const requestedUserLocation = req.body;
+
+        let officeId;
+
+        if (userRoleAsDefaultRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+
+            const isValidLocation = validateLocationWithinInstitutionRadius(requestedUserLocation, existingOffice.location, existingOffice.radius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = existingOffice._id.toString();
+        }
+        else {
+            const availableOfficeLocationsWithRadius = await getAllOfficeLocationsAndRadius();
+            if (!availableOfficeLocationsWithRadius) throw new ForbiddenError('No offices are availabe on the system to take punchIn');
+            const isValidLocation = validateLocationWithinMultipleInstitutionsRadius(requestedUserLocation, availableOfficeLocationsWithRadius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+            officeId = isValidLocation.officeId;
+        }
 
         const hasPunchIn = await isPunchInRecordedForDay(userId);
         if (hasPunchIn) throw new ConflictError('You have already punch in once on the day');
 
         const newAttendance: AttendancePunchinArgs = {
             userId,
-            officeId: existingUser.officeId.toString(),
+            officeId,
             location: req.body,
         }
         const addedAttendance = await insertAttendance(newAttendance);
@@ -50,10 +69,25 @@ export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, 
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new AuthenticationError();
 
-        if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+        const userRoleAsDefaultRole = await getDefaultRoleFromUserRole(existingUser.role);
 
-        const existingOffice = await findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+        const requestedUserLocation = req.body;
+
+        if (userRoleAsDefaultRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError("You can't punchin, without assigned in any office");
+
+            const existingOffice = await findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw Error('deleted officeId still found on user, System failure!');
+
+            const isValidLocation = validateLocationWithinInstitutionRadius(requestedUserLocation, existingOffice.location, existingOffice.radius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+        }
+        else {
+            const availableOfficeLocationsWithRadius = await getAllOfficeLocationsAndRadius();
+            if (!availableOfficeLocationsWithRadius) throw new ForbiddenError('No offices are availabe on the system to take punchIn');
+            const isValidLocation = validateLocationWithinMultipleInstitutionsRadius(requestedUserLocation, availableOfficeLocationsWithRadius);
+            if (!isValidLocation) throw new ForbiddenError("Requested from invalid location.You are not permitted to mark attendance from this location.");
+        }
 
         const hasPunchIn = await isPunchInRecordedForDay(userId);
         if (!hasPunchIn) throw new ConflictError("You should punchIn before punchOut");
