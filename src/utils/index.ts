@@ -7,6 +7,5 @@ export * from './sortUtils';
 export * from './pagenation';
 export * from './action';
 export * from './permission';
-export * from './dateUtils';
 export * from './attendnaceUtils';
 export * from './momentUtils';

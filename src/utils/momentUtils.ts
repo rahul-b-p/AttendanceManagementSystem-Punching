@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 import { DateRange, TimeInHHMM, YYYYMMDD } from "../types";
 import { logger } from './logger';
+import { DateStatus } from '../enums';
 
 
 /**
@@ -98,4 +99,29 @@ export const updateHoursAndMinutesInISODate = (isoDateString: string, timeString
     });
 
     return updatedMoment.toISOString();
+};
+
+/**
+ * To convert a date string in ISO Format
+*/
+export const convertToISOString = (string: string): string => {
+    const time = moment(string);
+    if (!time.isValid()) throw new Error('! inValid date string');
+
+    return time.toISOString();
+}
+
+
+export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
+    
+    const normalizedCurrentDate = moment().startOf("day");
+    const normalizedComparisonDate = moment(inputDate, "YYYY-MM-DD").startOf("day");
+
+    if (normalizedComparisonDate.isBefore(normalizedCurrentDate)) {
+        return DateStatus.Past;
+    } else if (normalizedComparisonDate.isAfter(normalizedCurrentDate)) {
+        return DateStatus.Future;
+    } else {
+        return DateStatus.Present;
+    }
 };
