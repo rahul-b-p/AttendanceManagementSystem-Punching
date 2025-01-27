@@ -1,7 +1,9 @@
 import { Types } from "mongoose";
-import { Days } from "../enums";
 import { AttendanceQuery } from "../types";
 import { getDateRange, getDayRange } from "./momentUtils";
+import { logger } from "./logger";
+import { getDayNumber } from "./dayUtils";
+import { Days } from "../enums";
 
 /**
  * Prepare the match filter for the aggregation pipeline.
@@ -34,7 +36,10 @@ export const prepareMatchFilter = (query: AttendanceQuery): Record<string, any> 
 
     // Day filter
     if (days) {
-        matchFilter["dayOfWeekName"] = days;
+        const daysArray = days.split(',') as Days[];
+        
+        const dayNumbers = getDayNumber(daysArray);
+        matchFilter["dayOfWeekName"] = { $in: dayNumbers };
     }
 
     return matchFilter;
@@ -46,15 +51,13 @@ export const prepareMatchFilter = (query: AttendanceQuery): Record<string, any> 
  */
 export const prepareAddFeilds = (query: AttendanceQuery): Record<string, any> => {
     const { days } = query;
-    const dayMap = Object.values(Days);
 
     const addFeilds: Record<string, any> = {};
 
     if (days) {
-        addFeilds["dayOfWeekName"] = {
-            $arrayElemAt: [dayMap, { $subtract: [{ $dayOfWeek: "$punchIn" }, 1] }],
-        }
+        addFeilds["dayOfWeekName"] = { $dayOfWeek: { $toDate: "$punchIn" } }
     }
 
+    logger.info(addFeilds)
     return addFeilds;
 }

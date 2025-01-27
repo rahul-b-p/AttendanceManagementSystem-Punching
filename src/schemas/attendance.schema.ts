@@ -5,6 +5,14 @@ import { AttendanceSortKeys, Days } from "../enums";
 
 
 
+const commaSeparatedDaysSchema = z.string().refine((val) => {
+    const daysArray = val.split(',');
+    const validDays = Object.values(Days);
+    return daysArray.every(day => validDays.includes(day as Days));
+}, {
+    message: "Invalid days provided. Ensure all days are valid Days enum values and comma-separated."
+});
+
 
 export const attendnacePunchSchema = z.object({
     latitude: z.number({ message: "latitude required" }),
@@ -48,13 +56,13 @@ export const updateAttendanceSchema = z.object({
 
 
 export const attendnaceFilterQuerySchema = z.object({
-    pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
-    pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
+    pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provided in digits"),
+    pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provided in digits"),
     date: YYYYMMDDSchema.optional(),
     userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }).optional(),
     startDate: YYYYMMDDSchema.optional(),
     endDate: YYYYMMDDSchema.optional(),
-    days: z.nativeEnum(Days).optional(),
+    days: commaSeparatedDaysSchema.optional(),
     officeId: z.string().regex(objectIdRegex, { message: "Invalid officeId" }).optional(),
     sortKey: z.nativeEnum(AttendanceSortKeys, { message: "Invalid sortKey" }).optional()
 }).strict()
@@ -80,7 +88,6 @@ export const attendnaceFilterQuerySchema = z.object({
         message: "startDate must be less than or equal to endDate",
         path: ["startDate"],
     });
-
 
 
 export const attendnaceSummaryQuerySchema = z.object({

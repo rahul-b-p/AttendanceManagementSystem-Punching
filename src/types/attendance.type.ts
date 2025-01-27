@@ -31,7 +31,7 @@ export type updateAttendanceBody = Partial<createAttendanceBody>;
 export type AttendanceQuery = {
     startDate?: YYYYMMDD;
     endDate?: YYYYMMDD;
-    days?: Days[];
+    days?: string;
     date?: YYYYMMDD;
     userId?: string;
     officeId?: string;

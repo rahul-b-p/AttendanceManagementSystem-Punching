@@ -9,3 +9,4 @@ export * from './action';
 export * from './permission';
 export * from './attendnaceUtils';
 export * from './momentUtils';
+export * from './dayUtils';
