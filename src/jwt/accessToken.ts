@@ -8,7 +8,11 @@ import { signToken, verifyToken } from './jwt.service';
  * Function to sign new Access Token
  * */
 export const signAccessToken = async (id: string, role: string): Promise<string> => {
-    return signToken(id, role, ACCESS_TOKEN_SECRET, ACCESS_TOKEN_EXPIRATION);
+    try {
+        return signToken(id, role, ACCESS_TOKEN_SECRET, ACCESS_TOKEN_EXPIRATION);
+    } catch (error: any) {
+        throw new Error(error.message);
+    }
 }
 
 

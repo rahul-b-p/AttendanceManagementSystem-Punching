@@ -1,8 +1,9 @@
 import jwt, { JsonWebTokenError } from 'jsonwebtoken'
- import { logger } from '../utils';
+import { logger } from '../utils';
 import { TokenPayload } from '../interfaces';
-import { secretKeySchema } from './jwt.schema';
+import { expirationSchema, secretKeySchema } from './jwt.schema';
 import { ZodError } from 'zod';
+import { StringValue } from './jwt.type';
 
 
 
@@ -13,7 +14,8 @@ import { ZodError } from 'zod';
 export const signToken = async (id: string, role: string, secretKey: string, expiration: string): Promise<string> => {
     try {
         secretKeySchema.parse(secretKey);
-        return jwt.sign({ id, role }, secretKey, { expiresIn: expiration });
+        expirationSchema.parse(expiration);
+        return jwt.sign({ id, role }, secretKey, { expiresIn: expiration as StringValue });
     } catch (error: any) {
         logger.error("Error while signing the token:", error);
 
