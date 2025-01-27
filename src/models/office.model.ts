@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IOffice } from "../interfaces";
+import { convertToISOString } from "../utils";
 
 
 
@@ -72,6 +73,12 @@ const officeSchema = new Schema<IOffice>({
             return ret;
         }
     }
+});
+
+officeSchema.pre('save', function (next) {
+    this.createdAt = convertToISOString(this.createdAt);
+        this.updatedAt = convertToISOString(this.updatedAt);
+    next();
 });
 
 officeSchema.index({ 'location.latitude': 1, 'location.longitude': 1, 'isDeleted': 1 }, { unique: true });

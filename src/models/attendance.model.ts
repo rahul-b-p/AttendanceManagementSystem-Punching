@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IAttendance } from "../interfaces";
+import { getTimeStamp } from "../utils";
 
 
 
@@ -10,13 +11,13 @@ const attendanceSchema = new Schema<IAttendance>({
         required: true
     },
     punchIn: {
-        type: Date,
+        type: String,
         required: true,
         unique: true,
-        default: () => new Date()
+        default: () => getTimeStamp()
     },
     punchOut: {
-        type: Date
+        type: String
     },
     location: {
         latitude: {

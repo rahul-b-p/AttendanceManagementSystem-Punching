@@ -10,4 +10,6 @@ export interface IOffice extends Document {
     managers: Types.ObjectId[];
     employees: Types.ObjectId[];
     isDeleted: boolean;
+    createdAt: string;
+    updatedAt: string;
 }

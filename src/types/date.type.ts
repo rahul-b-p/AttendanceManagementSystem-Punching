@@ -16,4 +16,4 @@ type DayRange = `0${NumberRange<1, 10>}` | `${1 | 2}${NumberRange<0, 10>}` | `30
 export type YYYYMMDD = `${YearRange}-${MonthRange}-${DayRange}`;
 
 
-export type DateRange = [Date, Date]
+export type DateRange = [string, string];

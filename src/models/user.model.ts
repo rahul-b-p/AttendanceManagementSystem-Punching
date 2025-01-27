@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IUser } from "../interfaces";
-import { hashPassword } from "../utils";
+import { convertToISOString, hashPassword } from "../utils";
 
 
 
@@ -34,15 +34,12 @@ const userSchema = new Schema<IUser>({
         required: true,
         default: false
     },
-    createAt: {
-        type: Date,
-        default: () => new Date()
-    },
-    officeId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'offices'
+    officeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'offices'
     }
 }, {
+    timestamps: true,
     toJSON: {
         transform(doc, ret) {
             delete ret.__v;
@@ -57,6 +54,12 @@ const userSchema = new Schema<IUser>({
     }
 }
 );
+
+userSchema.pre('save', function (next) {
+    this.createdAt = convertToISOString(this.createdAt);
+    this.updatedAt = convertToISOString(this.updatedAt);
+    next();
+});
 
 userSchema.pre('save', async function (next) {
     if (this.isModified('password') || this.isNew) {

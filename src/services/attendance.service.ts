@@ -3,28 +3,28 @@ import { AttendanceSortArgs } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
 import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceSummary, AttendanceSummaryQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
-import { calculatePageSkip, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
+import { calculatePageSkip, getDayRange, getTimeStamp, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
 import { validateAttendanceQuery } from "../validators";
+import moment from "moment";
 
 /**
- * Checks whether a punch-in record already exists for the specified user on the given date.
+ * Checks if a punch-in record exists for the specified user on the given date.
+ * If no date is provided, it checks for the current date.
 */
-export const isPunchInRecordedForDay = async (userId: string, date?: Date): Promise<IAttendance | null> => {
+export const checkPunchInForDay = async (userId: string, date?: string): Promise<IAttendance | null> => {
     try {
         let punchIn: any;
         if (date) {
-            punchIn = date;
+            const dayRange = getDayRange(date);
+
+            punchIn = { $gte: dayRange[0], $lte: dayRange[1] };
         }
         else {
-            const startOfCurrentDay = new Date();
-            startOfCurrentDay.setHours(0, 0, 0, 0);
+            const currentDate = getTimeStamp();
+            const currentDayRange = getDayRange(currentDate);
 
-            const endOfCurrentDay = new Date();
-            endOfCurrentDay.setHours(23, 59, 59, 999);
-
-            punchIn = { $gte: startOfCurrentDay, $lt: endOfCurrentDay }
+            punchIn = { $gte: currentDayRange[0], $lt: currentDayRange[1] }
         }
-
 
         const attendanceExistOnCurrentDay = await Attendance.findOne({
             userId,
@@ -78,7 +78,7 @@ export const updateAttendanceById = async (_id: string, upddateData: UpdateAtten
 */
 export const findAttendanceById = async (_id: string): Promise<IAttendance | null> => {
     try {
-        return await Attendance.findById(_id);
+        return await Attendance.findById(_id).lean();
     } catch (error: any) {
         logger.error(error);
         throw new Error(error.message);
@@ -91,30 +91,50 @@ export const findAttendanceById = async (_id: string): Promise<IAttendance | nul
  * ensuring chronological correctness based on the provided times or existing attendance,
  * and handles errors with appropriate logging.
  */
-
-export const comparePunchInPunchOut = (punchIn?: Date, punchOut?: Date, existingAttendance?: IAttendance): boolean => {
+export const comparePunchInPunchOut = (punchIn?: string, punchOut?: string, existingAttendance?: IAttendance): boolean => {
     try {
-        if (!punchIn && !punchOut) throw new Error('Either punchIn or punchOut argument are required');
-        else if (punchIn && punchOut) {
-            return punchOut > punchIn;
+        if (!punchIn && !punchOut) {
+            throw new Error('Either punchIn or punchOut argument is required');
         }
-        else if (punchIn && existingAttendance) {
-            return existingAttendance.punchOut ? existingAttendance.punchOut > punchIn : false;
+
+        if (punchIn && !moment(punchIn, moment.ISO_8601, true).isValid()) {
+            throw new Error('Invalid punchIn time. Must be an ISO string.');
         }
-        else if (punchOut && existingAttendance) {
-            return punchOut > existingAttendance.punchIn;
+
+        if (punchOut && !moment(punchOut, moment.ISO_8601, true).isValid()) {
+            throw new Error('Invalid punchOut time. Must be an ISO string.');
         }
-        else if (existingAttendance) {
-            return existingAttendance.punchOut ? existingAttendance.punchOut > existingAttendance.punchIn : true;
+
+        const punchInMoment = punchIn ? moment(punchIn) : null;
+        const punchOutMoment = punchOut ? moment(punchOut) : null;
+        const existingPunchInMoment = existingAttendance?.punchIn ? moment(existingAttendance.punchIn) : null;
+        const existingPunchOutMoment = existingAttendance?.punchOut ? moment(existingAttendance.punchOut) : null;
+
+        if (punchInMoment && punchOutMoment) {
+            return punchOutMoment.isAfter(punchInMoment);
         }
-        else {
-            throw new Error('No Data Provided for a comparison, Invalid usage of puchIn punchOut time comparison');
+
+        if (punchInMoment && existingAttendance) {
+            return existingPunchOutMoment ? existingPunchOutMoment.isAfter(punchInMoment) : false;
         }
+
+        if (punchOutMoment && existingAttendance) {
+            return existingPunchInMoment ? punchOutMoment.isAfter(existingPunchInMoment) : false;
+        }
+
+        if (existingAttendance) {
+            return existingPunchOutMoment
+                ? existingPunchOutMoment.isAfter(existingPunchInMoment || moment())
+                : true;
+        }
+
+        throw new Error('No data provided for comparison. Invalid usage of punch-in and punch-out time comparison.');
     } catch (error) {
         logger.error(error);
         throw error;
     }
-}
+};
+
 
 
 /**

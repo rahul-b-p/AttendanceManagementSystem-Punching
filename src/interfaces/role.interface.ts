@@ -10,4 +10,6 @@ export interface ICustomRole extends Document {
     _id: Types.ObjectId;
     role: string;
     permission: CustomRolePermission[];
+    createdAt: string;
+    updatedAt: string;
 }

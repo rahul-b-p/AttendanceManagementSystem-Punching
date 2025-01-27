@@ -14,8 +14,8 @@ export type AttendancePunchinArgs = {
     userId: string;
     officeId: string;
     location: Location;
-    punchIn?: Date;
-    punchOut?: Date;
+    punchIn?: string;
+    punchOut?: string;
 }
 
 export type UpdateAttendanceArgs = Partial<Omit<AttendancePunchinArgs, 'userId' | 'officeId'>>;
@@ -31,7 +31,7 @@ export type updateAttendanceBody = Partial<createAttendanceBody>;
 export type AttendanceQuery = {
     startDate?: YYYYMMDD;
     endDate?: YYYYMMDD;
-    days?: Days[];
+    days?: string;
     date?: YYYYMMDD;
     userId?: string;
     officeId?: string;
