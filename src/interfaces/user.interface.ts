@@ -11,6 +11,7 @@ export interface IUser extends Document {
     role: string;
     refreshToken?: string;
     verified: boolean;
-    createAt: Date;
+    createdAt: string;
+    updatedAt: string;
     officeId?: Types.ObjectId;
 }

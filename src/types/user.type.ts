@@ -52,7 +52,7 @@ export type userQuery = Partial<UserInsertArgs>;
 
 export type UserToShow = UserInsertArgs & {
     _id: Types.ObjectId;
-    createAt: Date;
+    createdAt: string;
     office?: IOffice;
 }
 

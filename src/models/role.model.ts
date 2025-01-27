@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { ICustomRole } from "../interfaces";
 import { Actions, PermissionLevel } from "../enums";
+import { convertToISOString } from "../utils";
 
 
 
@@ -46,6 +47,11 @@ const roleSchema = new Schema<ICustomRole>(
     }
 );
 
+roleSchema.pre('save', function (next) {
+    this.createdAt = convertToISOString(this.createdAt);
+    this.updatedAt = convertToISOString(this.updatedAt);
+    next();
+});
 
 const CustomRole = mongoose.model('customRoles', roleSchema);
 
