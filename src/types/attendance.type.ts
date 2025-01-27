@@ -14,8 +14,8 @@ export type AttendancePunchinArgs = {
     userId: string;
     officeId: string;
     location: Location;
-    punchIn?: Date;
-    punchOut?: Date;
+    punchIn?: string;
+    punchOut?: string;
 }
 
 export type UpdateAttendanceArgs = Partial<Omit<AttendancePunchinArgs, 'userId' | 'officeId'>>;

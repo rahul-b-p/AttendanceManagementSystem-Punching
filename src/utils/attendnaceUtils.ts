@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { Days } from "../enums";
 import { AttendanceQuery } from "../types";
-import { calculateDateRange } from "./dateUtils";
+import { getDateRange, getDayRange } from "./momentUtils";
 
 /**
  * Prepare the match filter for the aggregation pipeline.
@@ -11,8 +11,14 @@ export const prepareMatchFilter = (query: AttendanceQuery): Record<string, any> 
     const matchFilter: Record<string, any> = {};
 
     // Date range filter
-    const dateRange = calculateDateRange(date, startDate, endDate);
-    if (dateRange) {
+    if (date && (startDate || endDate)) throw new Error("single date and date range filter can't be applied together");
+    else if ((startDate && !endDate) || (endDate && !startDate)) throw new Error('should start and end dates are required to calculate daterange')
+    else if (date) {
+        const dayRange = getDayRange(date);
+        matchFilter["punchIn"] = { $gte: dayRange[0], $lte: dayRange[1] };
+    }
+    else if (startDate && endDate) {
+        const dateRange = getDateRange(startDate, endDate);
         matchFilter["punchIn"] = { $gte: dateRange[0], $lte: dateRange[1] };
     }
 

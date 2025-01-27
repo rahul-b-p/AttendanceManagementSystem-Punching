@@ -6,8 +6,8 @@ interface ILocation extends Document,Location{}
 export interface IAttendance extends Document {
     _id: Types.ObjectId;
     userId: Types.ObjectId;
-    punchIn: Date;
-    punchOut?: Date;
+    punchIn: string;
+    punchOut?: string;
     location: ILocation;
     officeId: Types.ObjectId;
 }
