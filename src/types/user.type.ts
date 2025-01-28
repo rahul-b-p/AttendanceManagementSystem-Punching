@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { UserSortKeys } from "../enums";
-import { IOffice, IUser } from "../interfaces";
+import { IAttendance, IOffice, IUser } from "../interfaces";
 import { PageInfo } from "./page.type";
 
 export type UserAuthBody = {
@@ -58,6 +58,7 @@ export type UserToShow = UserInsertArgs & {
     _id: Types.ObjectId;
     createdAt: string;
     office?: IOffice;
+    attendnaces?: IAttendance[];
 }
 
 export type UserSearchQuery = {

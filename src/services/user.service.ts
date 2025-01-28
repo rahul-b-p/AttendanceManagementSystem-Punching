@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
@@ -209,10 +210,72 @@ export const deleteUserById = async (_id: string): Promise<void> => {
 /**
  * Fetches an existing user along with all their related fields from other collections, while keeping sensitive data hidden.
 */
-export const getUserData = async (_id: string): Promise<UserToShow> => {
+export const getUserData = async (_id: string): Promise<UserToShow | null> => {
     try {
-        const user = await User.findById(_id, { password: 0, refreshToken: 0, __v: 0 }).lean();
-        return user as UserToShow;
+        const user = await User.aggregate([
+            {
+                $match: { _id: new Types.ObjectId(_id) }
+            },
+            {
+                $lookup: {
+                    from: 'offices',
+                    localField: 'officeId',
+                    foreignField: '_id',
+                    as: 'office',
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                officeName: 1,
+                                adress: {
+                                    street: 1,
+                                    city: 1,
+                                    state: 1,
+                                    zip_code: 1
+                                },
+                                location: {
+                                    latitude: 1,
+                                    longitude: 1
+                                },
+                                radius: 1
+                            },
+                        },
+                    ]
+                }
+            },
+            {
+                $unwind: {
+                    path: "$office",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $lookup: {
+                    from: 'attendances',
+                    localField: '_id',
+                    foreignField: 'userId',
+                    as: 'attendances',
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                punchIn: 1,
+                                punchOut: 1,
+                                location: 1,
+                            },
+                        },
+                    ]
+                }
+            }, {
+                $project: {
+                    __v: 0,
+                    password: 0,
+                    refreshToken: 0,
+                }
+            }
+        ]);
+        if (user.length <= 0) return null
+        return user[0] as UserToShow;
     } catch (error: any) {
         logger.error
         throw new Error(error.message);
