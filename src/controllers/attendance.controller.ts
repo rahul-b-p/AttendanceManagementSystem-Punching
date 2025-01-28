@@ -155,7 +155,6 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
         const officeTimeZone = getTimeZoneOfLocation(officeLocation);
         const punchIn = getDateFromInput(date, punchInTime, officeTimeZone);
         const hasPunchIn = await checkPunchInForDay(userId, punchIn);
-        logger.info(hasPunchIn);
         if (hasPunchIn) throw new ConflictError('Provided User Already have an attendnace data on given date');
 
         const punchOut = getDateFromInput(date, punchOutTime, officeTimeZone);
