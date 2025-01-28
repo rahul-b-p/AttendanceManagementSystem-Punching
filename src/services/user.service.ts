@@ -3,6 +3,7 @@ import { IUser } from "../interfaces";
 import { User } from "../models";
 import { IUserData, UserFetchResult, UserInsertArgs, userQuery, UserSearchQuery, UserToShow, UserUpdateArgs } from "../types";
 import { logger } from "../utils";
+import { setUserToOfficeById } from "./office.service";
 
 
 
@@ -41,7 +42,9 @@ export const insertUser = async (user: UserInsertArgs): Promise<IUserData> => {
     try {
         const newUser: IUser = new User(user);
         await newUser.save();
-
+        if (newUser.officeId) {
+            await setUserToOfficeById(newUser.officeId.toString(), newUser._id.toString(), Roles.employee);
+        }
         delete (newUser as any).__v;
         const { password, refreshToken, verified, ...userWithoutSensitiveData } = newUser.toObject()
         return userWithoutSensitiveData as IUserData;
@@ -152,20 +155,20 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
                     phone: 1,
                     role: 1,
                     createAt: 1,
-                    office:{
-                        _id:1,
-                        officeName:1,
-                        adress:{
-                            street:1,
-                            city:1,
-                            state:1,
-                            zip_code:1
+                    office: {
+                        _id: 1,
+                        officeName: 1,
+                        adress: {
+                            street: 1,
+                            city: 1,
+                            state: 1,
+                            zip_code: 1
                         },
-                        location:{
-                            latitude:1,
-                            longitude:1
+                        location: {
+                            latitude: 1,
+                            longitude: 1
                         },
-                        radius:1
+                        radius: 1
                     }
                 },
             },

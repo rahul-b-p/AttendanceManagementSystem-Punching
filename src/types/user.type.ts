@@ -13,6 +13,7 @@ export type UserInsertArgs = {
     email: string;
     phone: string;
     role: string;
+    officeId?: string;
 };
 
 export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'verified' | '__v'>;
@@ -47,7 +48,10 @@ export type UserFilterQuery = {
     sortKey?: UserSortKeys;
 };
 
-export type userQuery = Partial<UserInsertArgs>;
+export type userQuery = {
+    officeId?: Types.ObjectId;
+    role?: string;
+};
 
 
 export type UserToShow = UserInsertArgs & {

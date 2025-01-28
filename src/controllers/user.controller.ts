@@ -4,7 +4,7 @@ import { getUserSortArgs, logger, pagenate, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId, validateRole } from "../validators";
-import { deleteUserById, fetchUsers, findUserById, getUserData, insertUser, sendUserCreationNotification, sendUserUpdationNotification, updateUserById, validateEmailUniqueness } from "../services";
+import { deleteUserById, fetchUsers, findUserById, getDefaultRoleFromUserRole, getUserData, insertUser, isManagerAuthorizedForEmployee, sendUserCreationNotification, sendUserUpdationNotification, updateUserById, validateEmailUniqueness } from "../services";
 import { Roles, UserSortArgs } from "../enums";
 
 
@@ -23,9 +23,19 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
         const isValidRole = await validateRole(role);
         if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
 
-        const ownerId = req.payload?.id as string;
-        const owner = await findUserById(ownerId) as IUser;
-        if (role == Roles.admin && owner.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+        const reqOwnerId = req.payload?.id as string;
+        const reqOwner = await findUserById(reqOwnerId) as IUser;
+        const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
+
+        const creatingUserRole = await getDefaultRoleFromUserRole(role);
+
+        const userDataToInsert = req.body;
+
+        if (reqOwnerRole == Roles.manager) {
+            if (creatingUserRole !== Roles.employee) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+            if (!reqOwner.officeId) return next(new ForbiddenError("You are not assigned to any office, can't take any action"));
+            userDataToInsert.officeId = reqOwner.officeId.toString();
+        }
 
         const isValidEmail = await checkEmailValidity(email);
         if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
@@ -55,19 +65,31 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
  */
 export const readUsers = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery>, res: Response, next: NextFunction) => {
     try {
-        const ownerId = req.payload?.id as string;
-        const owner = await findUserById(ownerId) as IUser;
+        const reqOwnerId = req.payload?.id as string;
+        const reqOwner = await findUserById(reqOwnerId) as IUser;
+        const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
 
         const { role, pageNo, pageLimit, sortKey } = req.query;
+
+        let query: userQuery = {};
+
+        if (reqOwnerRole !== Roles.admin) {
+            if (!reqOwner.officeId) throw new ForbiddenError("You are not assigned in any office can't access any user data!");
+
+            query.officeId = reqOwner.officeId;
+        }
+
         if (role) {
             const isValidRole = await validateRole(role);
             if (!isValidRole) throw new BadRequestError("Invalid role provided!");
+
+            const defaultRole = await getDefaultRoleFromUserRole(role);
+            if (reqOwnerRole !== Roles.admin && defaultRole == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+
+            query.role = role;
         }
-        if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
-        const query: userQuery = role ? { role } : {};
         const sort: UserSortArgs = getUserSortArgs(sortKey);
-
 
         const fetchResult = await fetchUsers(Number(pageNo), Number(pageLimit), query, sort);
 
@@ -112,13 +134,21 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         const existingUser = await findUserById(id);
         if (!existingUser) return next(new NotFoundError("Requested user not found!"));
 
-        const ownerId = req.payload?.id as string;
-        const owner = await findUserById(ownerId) as IUser;
-        if (existingUser.role == Roles.admin && owner.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+        const reqOwnerId = req.payload?.id as string;
+        const reqOwner = await findUserById(reqOwnerId) as IUser;
+        const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
+
+        if (reqOwnerRole !== Roles.admin) {
+            if (existingUser.role == Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+
+            const isPermitted = await isManagerAuthorizedForEmployee(existingUser._id.toString(), reqOwnerId);
+            if (!isPermitted) throw new ForbiddenError('You can Only Access Employees of Assigned office');
+        }
 
         let userUpdateArgs;
         let emailAdress;
         let responseMessage;
+
         if (email) {
             const isValidEmail = await checkEmailValidity(email);
             if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
@@ -136,6 +166,7 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
             emailAdress = [] as string[];
             responseMessage = "Your account has been updated successfully" as string;
         }
+
         const updatedUser = await updateUserById(id, userUpdateArgs);
         if (updatedUser) {
             Promise.all(emailAdress.map((adress) => {
@@ -146,7 +177,6 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         }
 
         res.status(200).json({ ...await sendCustomResponse(responseMessage, updatedUser), verifyLink: email ? '/auth/login' : undefined });
-
     } catch (error) {
         logger.error(error);
         next(new InternalServerError());
@@ -170,10 +200,12 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
 
         const existingUser = await findUserById(id);
         if (!existingUser) return next(new NotFoundError("Requested user not found!"));
+        const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role);
 
-        const ownerId = req.payload?.id as string;
-        const owner = await findUserById(ownerId) as IUser;
-        if (existingUser.role == Roles.admin && owner.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+        const reqOwnerId = req.payload?.id as string;
+        const reqOwner = await findUserById(reqOwnerId) as IUser;
+        const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
+        if (existingUserRole == Roles.admin && reqOwnerRole !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
 
         await deleteUserById(id);
         res.status(200).json(await sendCustomResponse("User Deleted Successfully"));
@@ -192,20 +224,30 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
  */
 export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery & UserSearchQuery>, res: Response, next: NextFunction) => {
     try {
-        const ownerId = req.payload?.id as string;
-        const owner = await findUserById(ownerId) as IUser;
+        const reqOwnerId = req.payload?.id as string;
+        const reqOwner = await findUserById(reqOwnerId) as IUser;
+        const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
 
         const { role, pageNo, pageLimit, sortKey, username } = req.query;
 
-        if (role) {
-            const isValidRole = await validateRole(role);
-            if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+        let query: userQuery = {};
+
+        if (reqOwnerRole !== Roles.admin) {
+            if (!reqOwner.officeId) throw new ForbiddenError("You are not assigned in any office can't access any user data!");
+
+            query.officeId = reqOwner.officeId;
         }
 
+        if (role) {
+            const isValidRole = await validateRole(role);
+            if (!isValidRole) throw new BadRequestError("Invalid role provided!");
 
-        if (owner.role !== Roles.admin && role == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+            const defaultRole = await getDefaultRoleFromUserRole(role);
+            if (reqOwnerRole !== Roles.admin && defaultRole == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
 
-        const query: userQuery = role ? { role } : {};
+            query.role = role;
+        }
+
         const sort: UserSortArgs = getUserSortArgs(sortKey);
 
         const fetchResult = await fetchUsers(Number(pageNo), Number(pageLimit), query, sort, username);
@@ -235,15 +277,22 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
  */
 export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
     try {
-        const ownerId = req.payload?.id as string;
-        const owner = await findUserById(ownerId) as IUser;
+        const reqOwnerId = req.payload?.id as string;
+        const reqOwner = await findUserById(reqOwnerId) as IUser;
+        const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
 
         const { id } = req.params;
         const existingUser = await getUserData(id);
 
-        if (!existingUser) throw new NotFoundError('User Not Found!')
+        if (!existingUser) throw new NotFoundError('User Not Found!');
 
-        if (existingUser.role == Roles.admin && owner.role !== Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+        const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role);
+        if (reqOwnerRole !== Roles.admin) {
+            if (existingUserRole == Roles.admin) throw new ForbiddenError("Insufficient role privilliages to take an action");
+
+            const isAuthorizedManager = await isManagerAuthorizedForEmployee(id, reqOwnerId);
+            if (!isAuthorizedManager) throw new ForbiddenError("You have not permitted to access the user");
+        }
 
         res.status(200).json(await sendCustomResponse("User Details Fetched", existingUser));
     } catch (error) {
