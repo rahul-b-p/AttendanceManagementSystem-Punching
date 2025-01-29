@@ -2,10 +2,10 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { Adress, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOfficeArgs, updateOfficeInputBody } from "../types";
 import { isValidObjectId, permissionValidator, validateAdressWithLocation } from "../validators";
-import { getOfficeSortArgs, getPermissionSetFromDefaultRoles, logger, pagenate, sendCustomResponse } from "../utils";
+import { getOfficeSortArgs, getPermissionSetFromDefaultRoles, logFunctionInfo, pagenate, sendCustomResponse } from "../utils";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
 import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById, softDeleteOfficeById, getDefaultRoleFromUserRole, isManagerAuthorizedForEmployee } from "../services";
-import { Actions, FetchType, Roles } from "../enums";
+import { Actions, FetchType, FunctionStatus, Roles } from "../enums";
 import { Types } from "mongoose";
 
 
@@ -16,6 +16,9 @@ import { Types } from "mongoose";
  * @protected - only admin can access this feature
  */
 export const createOffice = async (req: customRequestWithPayload<{}, any, CreateOfficeInputBody>, res: Response, next: NextFunction) => {
+    const functionName = 'createOffice';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { officeName, street, city, state, zip_code, latitude, longitude, radius } = req.body;
 
@@ -29,9 +32,11 @@ export const createOffice = async (req: customRequestWithPayload<{}, any, Create
         if (!isUniqueLocation) throw new ConflictError("Already an office exists on the location");
 
         const insertedOffice = await insertOffice({ officeName, adress, location, radius });
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(201).json(await sendCustomResponse("New office created successfully", insertedOffice));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -42,6 +47,9 @@ export const createOffice = async (req: customRequestWithPayload<{}, any, Create
  * @protected - only admin can access this feature
  */
 export const readOffices = async (req: customRequestWithPayload<{}, any, any, OfficeFilterBody>, res: Response, next: NextFunction) => {
+    const functionName = 'readOffices';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { city, pageLimit, pageNo, sortKey, state } = req.query;
 
@@ -57,11 +65,12 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
             PageNationFeilds = pagenate(pageInfo, req.originalUrl);
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
             success: true, responseMessage, ...fetchResult, ...PageNationFeilds
         });
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -73,6 +82,9 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
  * @protected - only admin can access this feature
  */
 export const updateOffice = async (req: customRequestWithPayload<{ id: string }, any, updateOfficeInputBody>, res: Response, next: NextFunction) => {
+    const functionName = 'updateOffice';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
@@ -120,9 +132,10 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
         const updateOfficeData: UpdateOfficeArgs = { adress, location, officeName, radius }
         const updatedOffice = await updateOfficeById(id, updateOfficeData);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Office Updated Successfully", updatedOffice));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -135,6 +148,9 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
  * @protected - only admin can access this feature
  */
 export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = 'deleteOffice';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
@@ -143,9 +159,10 @@ export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>
         const isDeleted = await softDeleteOfficeById(id);
         if (!isDeleted) throw new NotFoundError("Requested office not found!");
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Office Deleted Successfully"));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -160,6 +177,9 @@ export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>
  * - manager: can assign employees only
  */
 export const assignToOffice = async (req: customRequestWithPayload<{ officeId: string, userId: string, role: Roles }>, res: Response, next: NextFunction) => {
+    const functionName = 'assignToOffice';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
@@ -208,9 +228,10 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
 
         const assignedOfficeBody = await setUserToOfficeById(officeId, userId, role);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Successfully assigned into office", assignedOfficeBody));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -225,6 +246,9 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
  * - manager: can remove employees only
  */
 export const removeFromOffice = async (req: customRequestWithPayload<{ officeId: string, userId: string, role: Roles }>, res: Response, next: NextFunction) => {
+    const functionName = 'removeFromOffice';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
@@ -255,9 +279,10 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
 
         const userRemovedOfficeBody = await unsetUserFromOfficeById(officeId, userId, role);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Successfully removed user from the office", userRemovedOfficeBody));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -268,6 +293,9 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
  * @protected - only admin can access this feature
  */
 export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, any, OfficeFilterBody>, res: Response, next: NextFunction) => {
+    const functionName = 'fetchOfficeTrash';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { city, pageLimit, pageNo, sortKey, state } = req.query;
 
@@ -283,11 +311,12 @@ export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, an
             PageNationFeilds = pagenate(pageInfo, req.originalUrl);
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
             success: true, message: responseMessage, ...fetchResult, ...PageNationFeilds
         });
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -299,6 +328,9 @@ export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, an
  * @protected - only admin can access this feature
  */
 export const deleteOfficeTrash = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = 'deleteOfficeTrash';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
@@ -307,9 +339,10 @@ export const deleteOfficeTrash = async (req: customRequestWithPayload<{ id: stri
         const isDeleted = await deleteOfficeById(id);
         if (!isDeleted) throw new NotFoundError("Requested office not found on trash!");
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Office Data Deleted Successfully from trash"));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error);
         next(error);
     }
 }

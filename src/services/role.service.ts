@@ -1,8 +1,8 @@
-import { Roles } from "../enums";
+import { FunctionStatus, Roles } from "../enums";
 import { ICustomRole } from "../interfaces";
 import { CustomRole, User } from "../models"
 import { InsertRoleArgs, RolesFetchResult, UpdateRoleArgs } from "../types";
-import { formatPermissionSetForDB, getRolesFromPermissionSet, logger } from "../utils";
+import { formatPermissionSetForDB, getRolesFromPermissionSet, logFunctionInfo } from "../utils";
 
 
 
@@ -10,10 +10,14 @@ import { formatPermissionSetForDB, getRolesFromPermissionSet, logger } from "../
  *  Finds a custom role data on database by its name.
 */
 export const findCustomRole = async (role: string): Promise<ICustomRole | null> => {
+    const functionName = 'findCustomRole';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
-        return await CustomRole.findOne({ role });
+        const customRole = await CustomRole.findOne({ role });
+        logFunctionInfo(functionName, FunctionStatus.start);
+        return customRole;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail);
         throw new Error(error.message);
     }
 }
@@ -23,6 +27,9 @@ export const findCustomRole = async (role: string): Promise<ICustomRole | null> 
  *  Inserts a new custom role to the database with a unique.
 */
 export const insertRole = async (newRoleInfo: InsertRoleArgs): Promise<ICustomRole> => {
+    const functionName = 'insertRole';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { role, ...permissionSet } = newRoleInfo
         const permission = formatPermissionSetForDB(permissionSet);
@@ -32,11 +39,12 @@ export const insertRole = async (newRoleInfo: InsertRoleArgs): Promise<ICustomRo
         });
 
         newRole.save();
-
         delete (newRole as any).__v;
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return newRole;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail);
         throw new Error(error.message);
     }
 }
@@ -46,6 +54,9 @@ export const insertRole = async (newRoleInfo: InsertRoleArgs): Promise<ICustomRo
  *  Fetches all custom roles on database with pagenation.
 */
 export const fetchCustomRoles = async (page: number, limit: number): Promise<RolesFetchResult | null> => {
+    const functionName = 'fetchCustomRoles';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const skip = (page - 1) * limit;
 
@@ -73,9 +84,10 @@ export const fetchCustomRoles = async (page: number, limit: number): Promise<Rol
             data: roles
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return roles.length > 0 ? fetchResult : null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -85,6 +97,9 @@ export const fetchCustomRoles = async (page: number, limit: number): Promise<Rol
  *  Updates a custom role data on database by its unique Id.
 */
 export const updateCustomRoleById = async (_id: string, roleUpdateInfo: UpdateRoleArgs): Promise<ICustomRole | null> => {
+    const functionName = 'updateCustomRoleById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { role, ...permissionSet } = roleUpdateInfo;
         let permission;
@@ -113,9 +128,11 @@ export const updateCustomRoleById = async (_id: string, roleUpdateInfo: UpdateRo
         }
 
         const updatedRole = await existingRole.save();
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return updatedRole as ICustomRole;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 };
@@ -125,15 +142,20 @@ export const updateCustomRoleById = async (_id: string, roleUpdateInfo: UpdateRo
  *  Deletes a custom role data on database by its unique Id.
 */
 export const deleteCustomRoleById = async (_id: string): Promise<boolean> => {
+    const functionName = 'deleteCustomRoleById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const deletedRole = await CustomRole.findByIdAndDelete(_id);
         // Setup to update role into employee, defaulty when a custom role deleted by admin
         if (deletedRole) {
             await User.updateMany({ role: deletedRole.role }, { $set: { role: Roles.employee } })
         }
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return deletedRole !== null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -143,20 +165,25 @@ export const deleteCustomRoleById = async (_id: string): Promise<boolean> => {
  *  Retrieves default roles by comparing the permission set of a custom role.
 */
 export const getDefaultRoleFromUserRole = async (roleString: string): Promise<Roles> => {
+    const functionName = 'getDefaultRoleFromUserRole';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
         if (Object.values(Roles).includes(roleString as Roles)) {
+            logFunctionInfo(functionName, FunctionStatus.success);
             return roleString as Roles;
         }
 
         const customRole = await findCustomRole(roleString);
         if (!customRole) throw new Error('Provided Invalid Role');
+
         const defaultRoles = getRolesFromPermissionSet(customRole.permission);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         if (defaultRoles.includes(Roles.admin)) return Roles.admin;
         else if (defaultRoles.includes(Roles.manager)) return Roles.manager;
         else return Roles.employee;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }

@@ -1,20 +1,21 @@
 import { ADMIN_EMAIL, ADMIN_PHONE, ADMIN_USERNAME } from "../config";
-import { Roles } from "../enums";
+import { FunctionStatus, Roles } from "../enums";
 import { createUserSchema } from "../schemas";
 import { checkAdminExists, insertUser, validateEmailUniqueness } from "../services";
 import { UserInsertArgs } from "../types";
 import { checkEmailValidity } from "../validators";
-import { logger } from "./logger";
+import { logFunctionInfo, logger } from "./logger";
 
 /**
  * Creates a default admin using system admin credentials from the environment variables, if no admin exists in the system.
  */
-export const createDefaultAdmin = async ():Promise<void> => {
+export const createDefaultAdmin = async (): Promise<void> => {
+    const functionName = 'createDefaultAdmin';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
-
         const isAdminExists = await checkAdminExists()
         if (isAdminExists) {
-            logger.info('Admin exists.');
+            logFunctionInfo(functionName, FunctionStatus.success, 'Admin Exists');
             return;
         }
 
@@ -35,9 +36,9 @@ export const createDefaultAdmin = async ():Promise<void> => {
         }
 
         const defaultAdmin = await insertUser(user);
-        logger.info(`Default admin user created successfully with ID: ${defaultAdmin._id}`);
+        logFunctionInfo(functionName, FunctionStatus.success, `Default admin user created successfully with ID: ${defaultAdmin._id}`);
     } catch (error: any) {
-        logger.error(`Failed to create a Default Admin:${error.message}`);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         process.exit(1);
     }
 }

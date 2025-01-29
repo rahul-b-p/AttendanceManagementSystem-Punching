@@ -1,10 +1,10 @@
 import { NextFunction, Response } from "express";
-import { customRequestWithPayload, IAttendance, IUser } from "../interfaces";
-import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
+import { customRequestWithPayload, IUser } from "../interfaces";
+import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logFunctionInfo, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
 import { checkPunchInForDay, comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
-import { DateStatus, Roles } from "../enums";
+import { DateStatus, FunctionStatus, Roles } from "../enums";
 import { isValidObjectId, validateLocationWithinInstitutionRadius, validateLocationWithinMultipleInstitutionsRadius } from "../validators";
 import { getTimeZoneOfLocation } from "../utils/timezone";
 
@@ -14,6 +14,9 @@ import { getTimeZoneOfLocation } from "../utils/timezone";
  * Controller function to handle the punch-in attendance request.
  */
 export const punchInAttendance = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
+    const functionName = 'punchInAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const userId = req.payload?.id as string;
         const existingUser = await findUserById(userId);
@@ -53,9 +56,10 @@ export const punchInAttendance = async (req: customRequestWithPayload<{}, any, L
         }
         const addedAttendance = await insertAttendance(newAttendance);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(201).json(await sendCustomResponse("Attendance Punch In Successfully", addedAttendance));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -65,6 +69,9 @@ export const punchInAttendance = async (req: customRequestWithPayload<{}, any, L
  * Controller function to handle the punch-out attendance request.
  */
 export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, Location>, res: Response, next: NextFunction) => {
+    const functionName = 'punchOutAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const userId = req.payload?.id as string;
         const existingUser = await findUserById(userId);
@@ -91,7 +98,6 @@ export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, 
         }
 
         const hasPunchIn = await checkPunchInForDay(userId);
-        logger.info(hasPunchIn)
         if (!hasPunchIn) throw new ConflictError("You should punchIn before punchOut");
 
         if (hasPunchIn.punchOut) throw new ConflictError("You have already completed punchOut on the day");
@@ -100,9 +106,10 @@ export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, 
         const updateBody: UpdateAttendanceArgs = { punchOut: currentTimestamp };
 
         const updatedAttendanceData = await updateAttendanceById(hasPunchIn._id.toString(), updateBody);
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse('Attendance Punch Out Successfully', updatedAttendanceData));
-    } catch (error) {
-        logger.info(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -113,6 +120,9 @@ export const punchOutAttendance = async (req: customRequestWithPayload<{}, any, 
  * @protected - This is an admin-only feature.
  */
 export const createAttendance = async (req: customRequestWithPayload<{ userId: string }, any, createAttendanceBody>, res: Response, next: NextFunction) => {
+    const functionName = 'createAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { userId } = req.params;
         const isValidUserId = isValidObjectId(userId);
@@ -168,9 +178,10 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
         }
 
         const insertedAttendanceData = await insertAttendance(insertAttendanceData);
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse('created a new attendance data feild', insertedAttendanceData))
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -181,6 +192,9 @@ export const createAttendance = async (req: customRequestWithPayload<{ userId: s
  * @protected - This is an admin-only feature.
  */
 export const updateAttendance = async (req: customRequestWithPayload<{ id: string }, any, updateAttendanceBody>, res: Response, next: NextFunction) => {
+    const functionName = 'updateAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { id } = req.params;
         if (!isValidObjectId(id)) throw new BadRequestError("Invalid attendance ID provided.");
@@ -266,9 +280,10 @@ export const updateAttendance = async (req: customRequestWithPayload<{ id: strin
         }
 
         const updatedAttendance = await updateAttendanceById(existingAttendance._id.toString(), updateAttendanceArgs);
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Attendance updated successfully.", updatedAttendance));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -279,6 +294,9 @@ export const updateAttendance = async (req: customRequestWithPayload<{ id: strin
  * @protected - This is an admin-only feature.
  */
 export const deleteAttendance = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = 'deleteAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
@@ -298,9 +316,10 @@ export const deleteAttendance = async (req: customRequestWithPayload<{ id: strin
         const isDeleted = await deleteAttendnaceById(id);
         if (!isDeleted) throw new NotFoundError('Requested Attendance Data not found!');
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Attendance Data Deleted Successfully"));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -314,6 +333,9 @@ export const deleteAttendance = async (req: customRequestWithPayload<{ id: strin
  * - User: Can access only their own attendance data.
  */
 export const readAllAttendance = async (req: customRequestWithPayload<{}, any, any, AttendanceFilterQuery>, res: Response, next: NextFunction) => {
+    const functionName = 'readAllAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const ownerId = req.payload?.id as string;
         const ownerData = await findUserById(ownerId);
@@ -371,11 +393,12 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
             PageNationFeilds = pagenate(pageInfo, req.originalUrl);
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
             success: true, message, ...fetchResult, ...PageNationFeilds
         });
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -386,6 +409,9 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
  * @protected - admin or manager previliaged user can only access the feature
  */
 export const attendanceSummary = async (req: customRequestWithPayload<{}, any, any, AttendanceSummaryQuery>, res: Response, next: NextFunction) => {
+    const functionName = 'attendanceSummary';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const ownerId = req.payload?.id as string;
         const ownerData = await findUserById(ownerId) as IUser;
@@ -410,9 +436,11 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
 
         const attendnceSummaryData = await findAttendanceSummary(req.query);
         const message = attendnceSummaryData ? `Fetched Attenadance summary of user with id: ${userId} between ${startDate} and ${endDate} ` : `User with id: ${userId} have no Attendance history between  ${startDate} and ${endDate}`
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse(message, attendnceSummaryData));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }

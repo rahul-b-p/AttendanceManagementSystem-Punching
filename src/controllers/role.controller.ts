@@ -1,10 +1,11 @@
 import { NextFunction, Response } from "express";
 import { customRequestWithPayload } from "../interfaces";
-import { logger, pagenate, sendCustomResponse } from "../utils";
+import { logFunctionInfo, pagenate, sendCustomResponse } from "../utils";
 import { CustomRolesFilter, InsertRoleArgs, UpdateRoleArgs } from "../types";
 import { deleteCustomRoleById, fetchCustomRoles, findCustomRole, insertRole, updateCustomRoleById } from "../services";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors";
 import { isValidObjectId } from "../validators";
+import { FunctionStatus } from "../enums";
 
 
 
@@ -14,6 +15,9 @@ import { isValidObjectId } from "../validators";
  * @protected - only admin can access this feature
  */
 export const createCustomRole = async (req: customRequestWithPayload<{}, any, InsertRoleArgs>, res: Response, next: NextFunction) => {
+    const functionName = 'createCustomRole';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { role } = req.body;
         const existingRole = await findCustomRole(role);
@@ -21,9 +25,10 @@ export const createCustomRole = async (req: customRequestWithPayload<{}, any, In
 
         const newCustomRole = await insertRole(req.body);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(201).json(await sendCustomResponse("new customized role created", newCustomRole))
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -34,6 +39,9 @@ export const createCustomRole = async (req: customRequestWithPayload<{}, any, In
  * @protected - only admin can access this feature
  */
 export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, any, CustomRolesFilter>, res: Response, next: NextFunction) => {
+    const functionName = 'readAllCustomRoles';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { pageNo, pageLimit } = req.query;
         const fetchResult = await fetchCustomRoles(Number(pageNo), Number(pageLimit));
@@ -45,11 +53,12 @@ export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, 
             PageNationFeilds = pagenate(pageInfo, req.originalUrl);
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
             success: true, responseMessage, ...fetchResult, ...PageNationFeilds
         });
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -61,6 +70,8 @@ export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, 
  * @protected - only admin can access this feature
  */
 export const updateCustomRole = async (req: customRequestWithPayload<{ id: string }, any, UpdateRoleArgs>, res: Response, next: NextFunction) => {
+    const functionName = 'updateCustomRole';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
@@ -76,9 +87,10 @@ export const updateCustomRole = async (req: customRequestWithPayload<{ id: strin
         const updatetedRole = await updateCustomRoleById(id, req.body);
         if (!updatetedRole) throw new NotFoundError('Requested role not found for an updation');
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse('customRole Updated SuccessFully', updatetedRole));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -90,6 +102,9 @@ export const updateCustomRole = async (req: customRequestWithPayload<{ id: strin
  * @protected - only admin can access this feature
  */
 export const deleteCustomRole = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = 'deleteCustomRole';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
@@ -98,10 +113,10 @@ export const deleteCustomRole = async (req: customRequestWithPayload<{ id: strin
         const isDeleted = await deleteCustomRoleById(id);
         if (!isDeleted) throw new NotFoundError("Requested Custom Role Not Found");
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("Customized role requested successfully"));
-
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }

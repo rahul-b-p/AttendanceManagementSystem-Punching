@@ -1,5 +1,7 @@
+import { FunctionStatus } from "../enums";
 import { BadRequestError } from "../errors";
 import { AttendanceQuery } from "../types";
+import { logFunctionInfo } from "../utils";
 
 
 /**
@@ -9,6 +11,8 @@ import { AttendanceQuery } from "../types";
  * @throws {BadRequestError} - If the validation rules are violated.
  */
 export const validateAttendanceQuery = (query: AttendanceQuery): void => {
+    logFunctionInfo("validateAttendanceQuery", FunctionStatus.start);
+
     const { date, startDate, endDate, days } = query;
 
     if (date && (startDate || endDate || days)) {

@@ -1,11 +1,11 @@
 import { NextFunction, Response } from "express";
-import { BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
-import { getUserSortArgs, logger, pagenate, sendCustomResponse } from "../utils"
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
+import { getUserSortArgs, logFunctionInfo, logger, pagenate, sendCustomResponse } from "../utils"
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { UserFilterQuery, UserInsertArgs, userQuery, UserSearchQuery, UserUpdateArgs, UserUpdateBody } from "../types";
 import { checkEmailValidity, isValidObjectId, validateRole } from "../validators";
 import { deleteUserById, fetchUsers, findUserById, getDefaultRoleFromUserRole, getUserData, insertUser, isManagerAuthorizedForEmployee, sendUserCreationNotification, sendUserUpdationNotification, updateUserById, validateEmailUniqueness } from "../services";
-import { Roles, UserSortArgs } from "../enums";
+import { FunctionStatus, Roles, UserSortArgs } from "../enums";
 
 
 
@@ -17,11 +17,14 @@ import { Roles, UserSortArgs } from "../enums";
  * - manager can't create admin privilliaged user
  */
 export const createUser = async (req: customRequestWithPayload<{}, any, UserInsertArgs>, res: Response, next: NextFunction) => {
+    const functionName = 'createUser';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { email, role } = req.body;
 
         const isValidRole = await validateRole(role);
-        if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+        if (!isValidRole) throw new BadRequestError("Invalid Role Provided");
 
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
@@ -32,26 +35,27 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
         const userDataToInsert = req.body;
 
         if (reqOwnerRole == Roles.manager) {
-            if (creatingUserRole !== Roles.employee) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
-            if (!reqOwner.officeId) return next(new ForbiddenError("You are not assigned to any office, can't take any action"));
+            if (creatingUserRole !== Roles.employee) throw new ForbiddenError('Forbidden: Insufficient role privileges');
+            if (!reqOwner.officeId) throw new ForbiddenError("You are not assigned to any office, can't take any action");
             userDataToInsert.officeId = reqOwner.officeId.toString();
         }
 
         const isValidEmail = await checkEmailValidity(email);
-        if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
+        if (!isValidEmail) throw new BadRequestError("Invalid Email Id");
 
         const isUniqueEmail = await validateEmailUniqueness(email);
-        if (!isUniqueEmail) return next(new ConflictError("User already exists!"));
+        if (!isUniqueEmail) throw new ConflictError("User already exists!");
 
         const newUser = await insertUser(req.body);
         sendUserCreationNotification(newUser).catch((error) => {
             logger.error("Error sending email:", error);
         });
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(201).json(await sendCustomResponse("New User Created Successfully", newUser));
-    } catch (error) {
-        logger.error(error);
-        next(new InternalServerError());
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        next(error);
     }
 }
 
@@ -64,6 +68,8 @@ export const createUser = async (req: customRequestWithPayload<{}, any, UserInse
  * - manager can read assigned users only
  */
 export const readUsers = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery>, res: Response, next: NextFunction) => {
+    const functionName = 'readUsers';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
@@ -100,11 +106,12 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
             PageNationFeilds = pagenate(pageInfo, req.originalUrl);
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
             success: true, responseMessage, ...fetchResult, ...PageNationFeilds
         });
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -119,27 +126,30 @@ export const readUsers = async (req: customRequestWithPayload<{}, any, any, User
  * - manager can only update users assigned in their manager privilliaged office
  */
 export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: string }, any, UserUpdateBody>, res: Response, next: NextFunction) => {
+    const functionName = 'updateUserByAdmin';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const { email, role } = req.body;
 
         if (role) {
             const isValidRole = await validateRole(role);
-            if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+            if (!isValidRole) throw new BadRequestError("Invalid Role Provided");
         }
 
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) return next(new BadRequestError("Invalid User Id"));
+        if (!isValidId) throw new BadRequestError("Invalid User Id");
 
         const existingUser = await findUserById(id);
-        if (!existingUser) return next(new NotFoundError("Requested user not found!"));
+        if (!existingUser) throw new NotFoundError("Requested user not found!");
 
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
         const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
 
         if (reqOwnerRole !== Roles.admin) {
-            if (existingUser.role == Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+            if (existingUser.role == Roles.admin) throw new ForbiddenError('Forbidden: Insufficient role privileges');
 
             const isPermitted = await isManagerAuthorizedForEmployee(existingUser._id.toString(), reqOwnerId);
             if (!isPermitted) throw new ForbiddenError('You can Only Access Employees of Assigned office');
@@ -151,12 +161,12 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
 
         if (email) {
             const isValidEmail = await checkEmailValidity(email);
-            if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
+            if (!isValidEmail) throw new BadRequestError("Invalid Email Id");
 
-            if (email == existingUser.email) return next(new BadRequestError("The email address you entered is already your current email."));
+            if (email == existingUser.email) throw new BadRequestError("The email address you entered is already your current email.");
 
             const isUniqueEmail = await validateEmailUniqueness(email);
-            if (!isUniqueEmail) return next(new ConflictError("User already exists!"));
+            if (!isUniqueEmail) throw new ConflictError("User already exists!");
             userUpdateArgs = { $set: { ...req.body, verified: false }, $unset: { refreshToken: 1 } } as UserUpdateArgs;
             emailAdress = [email, existingUser.email] as string[];
             responseMessage = "your account has been updated, need Email verification" as string;
@@ -176,10 +186,11 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
             })
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({ ...await sendCustomResponse(responseMessage, updatedUser), verifyLink: email ? '/auth/login' : undefined });
-    } catch (error) {
-        logger.error(error);
-        next(new InternalServerError());
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        next(error);
     }
 }
 
@@ -193,24 +204,27 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
  * - manager can only update users assigned in their manager privilliaged office
  */
 export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = 'deleteUserByAdmin';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) return next(new BadRequestError("Invalid User Id"));
+        if (!isValidId) throw new BadRequestError("Invalid User Id");
 
         const existingUser = await findUserById(id);
-        if (!existingUser) return next(new NotFoundError("Requested user not found!"));
+        if (!existingUser) throw new NotFoundError("Requested user not found!");
         const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role);
 
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
         const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
-        if (existingUserRole == Roles.admin && reqOwnerRole !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+        if (existingUserRole == Roles.admin && reqOwnerRole !== Roles.admin) throw new ForbiddenError('Forbidden: Insufficient role privileges');
 
         await deleteUserById(id);
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("User Deleted Successfully"));
-    } catch (error) {
-        logger.info(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -223,6 +237,9 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
  * - manager can search assigned users only
  */
 export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any, any, UserFilterQuery & UserSearchQuery>, res: Response, next: NextFunction) => {
+    const functionName = 'searchAndFilterUser';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
@@ -259,11 +276,12 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
             PageNationFeilds = pagenate(pageInfo, req.originalUrl);
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
             success: true, responseMessage, ...fetchResult, ...PageNationFeilds
         });
-    } catch (error) {
-        logger.info(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -276,6 +294,9 @@ export const searchAndFilterUser = async (req: customRequestWithPayload<{}, any,
  * - manager only read manager privilliaged office employees
  */
 export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = 'readUserDataByAdmin';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
@@ -294,9 +315,10 @@ export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: st
             if (!isAuthorizedManager) throw new ForbiddenError("You have not permitted to access the user");
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse("User Details Fetched", existingUser));
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
     }
 }
@@ -308,6 +330,9 @@ export const readUserDataByAdmin = async (req: customRequestWithPayload<{ id: st
  * the account will need re-verification to confirm the new email address.
  */
 export const updateProfile = async (req: customRequestWithPayload<{}, any, UserUpdateBody>, res: Response, next: NextFunction) => {
+    const functionName = 'updateProfile';
+    logFunctionInfo(functionName, FunctionStatus.start);
+    
     try {
         const { role, email } = req.body;
         const id = req.payload?.id as string;
@@ -316,9 +341,9 @@ export const updateProfile = async (req: customRequestWithPayload<{}, any, UserU
 
         if (role) {
             const isValidRole = await validateRole(role);
-            if (!isValidRole) return next(new BadRequestError("Invalid Role Provided"));
+            if (!isValidRole) throw new BadRequestError("Invalid Role Provided");
 
-            if (existingUser.role !== Roles.admin) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+            if (existingUser.role !== Roles.admin) throw new ForbiddenError('Forbidden: Insufficient role privileges');
         }
 
 
@@ -327,12 +352,12 @@ export const updateProfile = async (req: customRequestWithPayload<{}, any, UserU
         let responseMessage;
         if (email) {
             const isValidEmail = await checkEmailValidity(email);
-            if (!isValidEmail) return next(new BadRequestError("Invalid Email Id"));
+            if (!isValidEmail) throw new BadRequestError("Invalid Email Id");
 
-            if (email == existingUser.email) return next(new BadRequestError("The email address you entered is already your current email."));
+            if (email == existingUser.email) throw new BadRequestError("The email address you entered is already your current email.");
 
             const isUniqueEmail = await validateEmailUniqueness(email);
-            if (!isUniqueEmail) return next(new ConflictError("User already exists!"));
+            if (!isUniqueEmail) throw new ConflictError("User already exists!");
             userUpdateArgs = { $set: { ...req.body, verified: false }, $unset: { refreshToken: 1 } } as UserUpdateArgs;
             emailAdress = [email, existingUser.email] as string[];
             responseMessage = "your account has been updated, need Email verification" as string;
@@ -351,10 +376,10 @@ export const updateProfile = async (req: customRequestWithPayload<{}, any, UserU
             })
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({ ...await sendCustomResponse(responseMessage, updatedUser), verifyLink: email ? '/auth/login' : undefined });
-
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail);
         next(error);
     }
 }

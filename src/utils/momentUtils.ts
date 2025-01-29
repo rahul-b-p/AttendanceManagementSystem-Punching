@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 import { DateRange, TimeInHHMM, YYYYMMDD } from "../types";
-import { logger } from './logger';
-import { DateStatus } from '../enums';
+import { logFunctionInfo } from './logger';
+import { DateStatus, FunctionStatus } from '../enums';
 
 
 /**
@@ -16,6 +16,8 @@ export const getTimeStamp = (): string => {
  * Parses the given date and time strings into an ISO 8601 string format using Moment.js.
  */
 export const getDateFromInput = (dateString: YYYYMMDD, timeString: TimeInHHMM, timeZone: string): string => {
+    logFunctionInfo('getDateFromInput', FunctionStatus.start);
+
     if (!moment(dateString, 'YYYY-MM-DD', true).isValid()) {
         throw new Error("Invalid date format. Expected format: YYYY-MM-DD.");
     }
@@ -82,7 +84,8 @@ export const getDateRange = (rangeStartDate: string, rangeEndDate: string): Date
  * To edit Hours and Minutes in Date and return date in ISO string format 
  */
 export const updateHoursAndMinutesInISODate = (isoDateString: string, timeString: TimeInHHMM): string => {
-    logger.info(isoDateString)
+    logFunctionInfo("updateHoursAndMinutesInISODate", FunctionStatus.start);
+
     if (!moment(isoDateString, moment.ISO_8601, true).isValid()) {
         throw new Error("Invalid date format. Expected an ISO string.");
     }
@@ -113,7 +116,8 @@ export const convertToISOString = (string: string): string => {
 
 
 export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
-    
+    logFunctionInfo('compareDatesWithCurrentDate', FunctionStatus.start);
+
     const normalizedCurrentDate = moment().startOf("day");
     const normalizedComparisonDate = moment(inputDate, "YYYY-MM-DD").startOf("day");
 

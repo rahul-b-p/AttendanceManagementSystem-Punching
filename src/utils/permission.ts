@@ -1,13 +1,16 @@
-import { Actions, PermissionLevel, Roles } from "../enums";
+import { Actions, FunctionStatus, PermissionLevel, Roles } from "../enums";
 import { CustomRolePermission } from "../interfaces";
 import { PermissionInputFormat } from "../types";
-import { logger } from "./logger";
+import { logFunctionInfo, logger } from "./logger";
 
 
 /**
  * Retrieves the permission set based on the provided default roles, mapping each role to its associated permission level.
  */
 export const getPermissionSetFromDefaultRoles = (...roles: Roles[]): CustomRolePermission[] => {
+    const functionName = 'getPermissionSetFromDefaultRoles';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const permissionLevelMap = {
             [Roles.admin]: PermissionLevel.all,
@@ -23,13 +26,15 @@ export const getPermissionSetFromDefaultRoles = (...roles: Roles[]): CustomRoleP
         }
 
         const basicActions = [Actions.create, Actions.read, Actions.update, Actions.delete];
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return basicActions.map(action => ({
             action,
             level: levels
         }));
 
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 };
@@ -39,6 +44,9 @@ export const getPermissionSetFromDefaultRoles = (...roles: Roles[]): CustomRoleP
  * Retrieves the roles associated with the given permission set by mapping permission levels back to their corresponding roles.
  */
 export const getRolesFromPermissionSet = (permissions: CustomRolePermission[]): Roles[] => {
+    const functionName = 'getRolesFromPermissionSet';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const permissionLevelMap = {
             [PermissionLevel.all]: Roles.admin,
@@ -63,10 +71,10 @@ export const getRolesFromPermissionSet = (permissions: CustomRolePermission[]): 
             throw new Error('No roles found for the given permissions.');
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return roles;
-
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 };
@@ -76,6 +84,9 @@ export const getRolesFromPermissionSet = (permissions: CustomRolePermission[]): 
  * Formats a permission set for storage in the database by validating and structuring the input.
  */
 export const formatPermissionSetForDB = (permissionSet: PermissionInputFormat): CustomRolePermission[] => {
+    const functionName = 'formatPermissionSetForDB';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     const formattedPermissionSet: CustomRolePermission[] = [];
 
     for (const key in permissionSet) {
@@ -95,5 +106,6 @@ export const formatPermissionSetForDB = (permissionSet: PermissionInputFormat): 
         }
     }
 
+    logFunctionInfo(functionName, FunctionStatus.success);
     return formattedPermissionSet;
 };

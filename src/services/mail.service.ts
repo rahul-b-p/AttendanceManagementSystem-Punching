@@ -1,8 +1,9 @@
 import { SentMessageInfo } from "nodemailer";
 import { HOST_EMAIL_ID, transporter } from "../config"
 import { EmailOptions, IUserData } from "../types";
-import { logger } from "../utils"
+import { logFunctionInfo, logger } from "../utils"
 import { generateOtp } from "./otp.service";
+import { FunctionStatus } from "../enums";
 
 
 
@@ -26,6 +27,10 @@ const sendEmail = async (emailOptions: EmailOptions): Promise<SentMessageInfo> =
  * Generates an OTP for initial login or account verification and sends it to the specified recipient's email address.
  */
 export const sendOtpForInitialLogin = async (userId: string, email: string): Promise<SentMessageInfo> => {
+
+    const functionName = 'sendOtpForInitialLogin';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const otp = await generateOtp(userId);
         const emailOptions: EmailOptions = {
@@ -35,9 +40,12 @@ export const sendOtpForInitialLogin = async (userId: string, email: string): Pro
             html: `<p>Your OTP code for first-time login is: <strong>${otp}</strong></p><p>This code will expire in 5 minutes.</p>`
         };
 
-        return await sendEmail(emailOptions);
-    } catch (error) {
-        logger.error('Error sending OTP email:', error);
+        const mailInfo = await sendEmail(emailOptions);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        return mailInfo;
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error('Failed to send OTP email');
     }
 };
@@ -47,6 +55,8 @@ export const sendOtpForInitialLogin = async (userId: string, email: string): Pro
  * Generates an OTP for password reset and sends it to the specified recipient's email address.
  */
 export const sendOtpForPasswordReset = async (userId: string, email: string): Promise<SentMessageInfo> => {
+    const functionName = 'sendOtpForPasswordReset';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const otp = await generateOtp(userId);
         const emailOptions: EmailOptions = {
@@ -56,9 +66,12 @@ export const sendOtpForPasswordReset = async (userId: string, email: string): Pr
             html: `<p>Your OTP (One-Time Password) is: <strong>${otp}</strong>.</p>  <p>This OTP will expire in <strong>5 minutes</strong>.</p>`
         };
 
-        return await sendEmail(emailOptions);
-    } catch (error) {
-        logger.error('Error sending OTP email:', error);
+        const mailInfo = await sendEmail(emailOptions);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        return mailInfo;
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error('Failed to send OTP email');
     }
 };
@@ -68,6 +81,8 @@ export const sendOtpForPasswordReset = async (userId: string, email: string): Pr
  * Sends an account creation acknowledgment notification to the recipient's email address.
  */
 export const sendUserCreationNotification = async (user: IUserData): Promise<SentMessageInfo> => {
+    const functionName = '';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const { role, email, username, phone } = user;
 
@@ -102,10 +117,11 @@ export const sendUserCreationNotification = async (user: IUserData): Promise<Sen
             html: emailContent
         }
 
-        return await sendEmail(emailOptions);
-
+        const mailOPtions = await sendEmail(emailOptions);
+        logFunctionInfo(functionName, FunctionStatus.success);
+        return mailOPtions;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -115,6 +131,9 @@ export const sendUserCreationNotification = async (user: IUserData): Promise<Sen
  * Sends an account updation acknowledgment notification to the recipient's email address.
  */
 export const sendUserUpdationNotification = async (to: string, updatedUser: IUserData, existingEmail?: string,): Promise<SentMessageInfo> => {
+    const functionName = 'sendUserUpdationNotification';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const emailContent = `
     <b>Hi ${updatedUser.username},</b>
@@ -138,9 +157,12 @@ export const sendUserUpdationNotification = async (to: string, updatedUser: IUse
             text: emailContent
         }
 
-        return await sendEmail(emailOptions);
+        const mailOPtions = await sendEmail(emailOptions);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        return mailOPtions;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
