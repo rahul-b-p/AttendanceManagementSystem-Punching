@@ -182,6 +182,12 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
                 }
             },
             {
+                $unwind:{
+                    path: "$office",
+                    preserveNullAndEmptyArrays: true,
+                }
+            },
+            {
                 $project: {
                     _id: 1,
                     username: 1,
@@ -189,6 +195,7 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
                     phone: 1,
                     role: 1,
                     createAt: 1,
+                    verified:1,
                     office: {
                         _id: 1,
                         officeName: 1,

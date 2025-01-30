@@ -1,8 +1,9 @@
 import moment from 'moment-timezone';
-import { DateRange, TimeInHHMM, YYYYMMDD } from "../types";
+import { DateRange, Location, TimeInHHMM, YYYYMMDD } from "../types";
 import { logFunctionInfo } from './logger';
 import { DateStatus, FunctionStatus } from '../enums';
 import { errorMessage } from '../constants';
+import { getTimeZoneOfLocation } from './timezone';
 
 
 /**
@@ -84,26 +85,44 @@ export const getDateRange = (rangeStartDate: string, rangeEndDate: string): Date
 /**
  * To edit Hours and Minutes in Date and return date in ISO string format 
  */
-export const updateHoursAndMinutesInISODate = (isoDateString: string, timeString: TimeInHHMM): string => {
+export const updateHoursAndMinutesInISODate = (isoDateString: string, timeString: TimeInHHMM, location: Location): string => {
     logFunctionInfo("updateHoursAndMinutesInISODate", FunctionStatus.start);
 
+    // Validate ISO date string
     if (!moment(isoDateString, moment.ISO_8601, true).isValid()) {
         throw new Error(errorMessage.INVALID_DATE_ISO);
     }
 
+    // Validate time string
     if (!moment(timeString, 'HH:mm', true).isValid()) {
         throw new Error(errorMessage.INVALID_TIME_INPUT);
     }
 
-    const updatedMoment = moment(isoDateString).utc().set({
-        hour: Number(timeString.split(':')[0]),
-        minute: Number(timeString.split(':')[1]),
+    // Parse hours and minutes from local time
+    const [hours, minutes] = timeString.split(':').map(Number);
+
+    // Create a moment object from the UTC ISO string and convert to the location's timezone
+    const momentInUTC = moment(isoDateString);
+
+    // Get timezone offset for the given coordinates
+    const tzOffset = getTimeZoneOfLocation(location);
+
+    // Apply the timezone offset
+    const localMoment = momentInUTC.clone().add(tzOffset, 'minutes');
+
+    // Set the local time components
+    localMoment.set({
+        hour: hours,
+        minute: minutes,
         second: 0,
-        millisecond: 0,
+        millisecond: 0
     });
 
-    return updatedMoment.toISOString();
+    // Convert back to UTC
+    return localMoment.subtract(tzOffset, 'minutes').toISOString();
 };
+
+
 
 /**
  * To convert a date string in ISO Format

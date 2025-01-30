@@ -22,7 +22,7 @@ export const checkEmailValidity = (email: string): Promise<boolean> => {
                     return resolve(false);
                 }
 
-                logFunctionInfo(functionName, FunctionStatus.fail);
+                logFunctionInfo(functionName, FunctionStatus.success);
                 resolve(addresses && addresses.length > 0);
             });
         } catch (error: any) {
