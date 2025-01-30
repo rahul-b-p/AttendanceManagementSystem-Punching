@@ -269,12 +269,13 @@ export const updateAttendance = async (req: customRequestWithPayload<{ id: strin
 
             updateAttendanceArgs.punchOut = punchOutTime ? getDateFromInput(date, punchOutTime, timezone) : undefined;
         } else {
+            const timezoneLocation = updateAttendanceArgs.location ? updateAttendanceArgs.location : existingAttendance.location;
             if (punchInTime) {
-                updateAttendanceArgs.punchIn = updateHoursAndMinutesInISODate(existingAttendance.punchIn, punchInTime);
+                updateAttendanceArgs.punchIn = updateHoursAndMinutesInISODate(existingAttendance.punchIn, punchInTime, timezoneLocation);
             }
 
             if (punchOutTime) {
-                updateAttendanceArgs.punchOut = updateHoursAndMinutesInISODate(existingAttendance.punchIn, punchOutTime);
+                updateAttendanceArgs.punchOut = updateHoursAndMinutesInISODate(existingAttendance.punchIn, punchOutTime, timezoneLocation);
             }
         }
 
