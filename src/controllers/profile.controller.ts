@@ -11,7 +11,9 @@ import { checkEmailValidity, validateRole } from "../validators";
 
 
 
-
+/**
+ * Controller Function to get all data of logined user
+ */
 export const getAllData = async (req: customRequestWithPayload, res: Response, next: NextFunction) => {
     const functionName = getAllData.name;
     try {
@@ -42,7 +44,7 @@ export const updateProfile = async (req: customRequestWithPayload<{}, any, UserU
         const { role, email } = req.body;
         const id = req.payload?.id as string;
         const existingUser = await findUserById(id) as IUser;
-        
+
 
 
         if (role) {
