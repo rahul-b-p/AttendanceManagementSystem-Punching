@@ -3,7 +3,7 @@ import { AttendanceSortArgs, FunctionStatus } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
 import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceSummary, AttendanceSummaryQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
-import { calculatePageSkip, getDayRange, getTimeStamp, logFunctionInfo, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
+import { calculatePageSkip, getDateRange, getDayRange, getTimeStamp, logFunctionInfo, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
 import { validateAttendanceQuery } from "../validators";
 import moment from "moment";
 import { errorMessage } from "../constants";
@@ -340,47 +340,86 @@ export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Prom
 
     const { userId, endDate, startDate } = query
     try {
+
+        const dateDange = getDateRange(startDate, endDate);
         const matchFilter = {
             userId: new Types.ObjectId(userId),
             punchIn: {
-                $gte: new Date(startDate),
-                $lte: new Date(endDate)
+                $gte: dateDange[0],
+                $lte: dateDange[1]
             }
         }
 
         const attendanceSummary: AttendanceSummary[] = await Attendance.aggregate([
+            // Stage1:Matching  with the date range
             { $match: matchFilter },
+
+            // Stage 2: Project required fields and calculate working hours
             {
                 $project: {
                     userId: 1,
-                    date: { $dateToString: { format: "%Y-%m-%d", date: "$punchIn" } }, // Extract date from punchIn
+                    date: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: { $dateFromString: { dateString: "$punchIn" } }
+                        }
+                    },
                     workingHours: {
                         $cond: {
-                            if: { $and: ["$punchOut", "$punchIn"] },
-                            then: { $divide: [{ $subtract: ["$punchOut", "$punchIn"] }, 1000 * 60 * 60] }, // Hours
-                            else: 0,
-                        },
+                            if: {
+                                $and: [
+                                    { $ne: ["$punchOut", null] },
+                                    { $ne: ["$punchIn", null] }
+                                ]
+                            },
+                            then: {
+                                $divide: [
+                                    {
+                                        $subtract: [
+                                            { $dateFromString: { dateString: "$punchOut" } },
+                                            { $dateFromString: { dateString: "$punchIn" } }
+                                        ]
+                                    },
+                                    3600000 // Convert milliseconds to hours (1000 * 60 * 60)
+                                ]
+                            },
+                            else: 0
+                        }
                     },
-                    punchOutMissing: { $not: ["$punchOut"] }, // Mark records missing punchOut
+                    punchOutMissing: {
+                        $cond: {
+                            if: { $eq: ["$punchOut", null] },
+                            then: true,
+                            else: false
+                        }
+                    }
                 }
             },
+
+            // Stage 3: Group by userId and calculate metrics
             {
                 $group: {
-                    _id: { userId: "$userId" },
-                    totalDays: { $sum: 1 }, // Count total days
-                    totalHours: { $sum: "$workingHours" }, // Sum of working hours
-                    missedPunchOuts: { $sum: { $cond: ["$punchOutMissing", 1, 0] } }, // Count missed punch-outs
-                },
+                    _id: "$userId",
+                    totalDays: { $sum: 1 },
+                    totalHours: { $sum: "$workingHours" },
+                    missedPunchOuts: {
+                        $sum: {
+                            $cond: ["$punchOutMissing", 1, 0]
+                        }
+                    }
+                }
             },
+
+            // Stage 4: Format the final output
             {
                 $project: {
                     _id: 0,
-                    userId: "$_id.userId",
+                    userId: "$_id",
                     totalDays: 1,
-                    totalHours: { $round: ["$totalHours", 2] }, // Round to 2 decimal places
-                    missedPunchOuts: 1,
-                },
-            },
+                    totalHours: { $round: ["$totalHours", 2] },
+                    missedPunchOuts: 1
+                }
+            }
         ]);
 
         logFunctionInfo(functionName, FunctionStatus.success);
