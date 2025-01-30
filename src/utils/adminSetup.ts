@@ -1,4 +1,5 @@
 import { ADMIN_EMAIL, ADMIN_PHONE, ADMIN_USERNAME } from "../config";
+import { errorMessage, responseMessage } from "../constants";
 import { FunctionStatus, Roles } from "../enums";
 import { createUserSchema } from "../schemas";
 import { checkAdminExists, insertUser, validateEmailUniqueness } from "../services";
@@ -20,7 +21,7 @@ export const createDefaultAdmin = async (): Promise<void> => {
         }
 
         const isValidEmail = await checkEmailValidity(ADMIN_EMAIL);
-        if (!isValidEmail) throw new Error("Invalid Email Provided on env");
+        if (!isValidEmail) throw new Error(errorMessage.INVALID_EMAIL_ID);
 
         const user: UserInsertArgs = {
             username: ADMIN_USERNAME,
@@ -32,11 +33,11 @@ export const createDefaultAdmin = async (): Promise<void> => {
 
         const isUniqueEmial = await validateEmailUniqueness(user.username);
         if (!isUniqueEmial) {
-            throw new Error("Admin email is not unique");
+            throw new Error(errorMessage.EMAIL_ALREADY_IN_USE);
         }
 
         const defaultAdmin = await insertUser(user);
-        logFunctionInfo(functionName, FunctionStatus.success, `Default admin user created successfully with ID: ${defaultAdmin._id}`);
+        logFunctionInfo(functionName, FunctionStatus.success, responseMessage.DEFAULT_ADMIN_CREATED + defaultAdmin._id);
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         process.exit(1);

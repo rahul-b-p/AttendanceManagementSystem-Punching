@@ -7,6 +7,8 @@ import { UserAuthBody, UserOtpVerifyBody, UserUpdateArgs } from "../types";
 import { blacklistToken, findUserByEmail, getUserData, findUserById, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 import { FunctionStatus } from "../enums";
+import { errorMessage, responseMessage } from "../constants";
+
 
 
 
@@ -22,24 +24,24 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
         const { email, password } = req.body;
 
         const existingUser = await findUserByEmail(email);
-        if (!existingUser) throw new NotFoundError('User not found with given email id');
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
         if (!existingUser.verified || !existingUser.password) {
 
             const sendMailInfo = await sendOtpForInitialLogin(existingUser._id.toString(), existingUser.email);
             logger.info(sendMailInfo);
-            if (sendMailInfo.accepted.length <= 0) throw new Error('Email Validation failed while creating user');
+            if (sendMailInfo.accepted.length <= 0) throw new Error(errorMessage.EMAIL_VALIDATION_FAILED);
 
-            logFunctionInfo(functionName, FunctionStatus.pending, "OTP sent for first-time login verification.")
+            logFunctionInfo(functionName, FunctionStatus.pending, responseMessage.OTP_SENT_FOR_EMAIL_VERIFICATION);
             res.status(200).json({
-                "message": "OTP sent for first-time login verification.",
-                "emailSent": true
+                message: responseMessage.OTP_SENT_FOR_EMAIL_VERIFICATION,
+                emailSent: true
             });
             return;
         }
 
         const isVerifiedPassword = await comparePassword(password, existingUser.password);
-        if (!isVerifiedPassword) throw new AuthenticationError('Invalid Password');
+        if (!isVerifiedPassword) throw new AuthenticationError(errorMessage.INVALID_PASSWORD);
 
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
@@ -51,7 +53,7 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.statusMessage = "Login Successful";
-        res.status(200).json({ ...await sendCustomResponse('Login Successful', UserData), AccessToken, RefreshToken });
+        res.status(200).json({ ...await sendCustomResponse(responseMessage.SUCCESS_LOGIN, UserData), AccessToken, RefreshToken });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error)
@@ -68,10 +70,10 @@ export const refresh = async (req: customRequestWithPayload, res: Response, next
 
     try {
         const id = req.payload?.id;
-        if (!id) throw new Error('The user ID was not added to the payload by the authentication middleware.');
+        if (!id) throw new InternalServerError(errorMessage.NO_USER_ID_IN_PAYLOAD);
 
         const existingUser = await findUserById(id);
-        if (!existingUser) throw new Error('Authorization Failed');
+        if (!existingUser) throw new InternalServerError(errorMessage.AUTHORIZATION_FAILED);
 
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
         const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
@@ -80,10 +82,10 @@ export const refresh = async (req: customRequestWithPayload, res: Response, next
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse('Token refreshed successfully', { AccessToken, RefreshToken }));
+        res.status(200).json({ ...await sendCustomResponse(responseMessage.TOKEN_REFRESHED), AccessToken, RefreshToken });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
-        next(new InternalServerError('Something went wrong'));
+        next(error);
     }
 }
 
@@ -96,13 +98,13 @@ export const logout = async (req: customRequestWithPayload, res: Response, next:
     logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const id = req.payload?.id;
-        if (!id) throw new Error('The user ID was not added to the payload by the authentication middleware.');
+        if (!id) throw new InternalServerError(errorMessage.NO_USER_ID_IN_PAYLOAD);
 
         const AccessToken = req.headers.authorization?.split(' ')[1];
-        if (!AccessToken) throw new Error('AccessToken missed from header after auth middleware');
+        if (!AccessToken) throw new InternalServerError(errorMessage.ACCESSTOKEN_MISSING);
 
         const existingUser = await findUserById(id);
-        if (!existingUser) return next(new NotFoundError());
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
         await blacklistToken(AccessToken);
         if (existingUser.refreshToken) {
@@ -111,10 +113,10 @@ export const logout = async (req: customRequestWithPayload, res: Response, next:
         }
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse('Logged out successfully.'));
+        res.status(200).json(await sendCustomResponse(responseMessage.SUCCESS_LOGOUT));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
-        next(new InternalServerError('Something went wrong'));
+        next(error);
     }
 }
 
@@ -130,10 +132,10 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserOtpVerif
         const { otp, email, confirmPassword } = req.body;
 
         const existingUser = await findUserByEmail(email);
-        if (!existingUser) throw new NotFoundError('User not found withgiven email id');
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
         const isValidOtp = await verifyOtp(existingUser._id.toString(), otp);
-        if (!isValidOtp) throw new AuthenticationError("Invalid Otp");
+        if (!isValidOtp) throw new AuthenticationError(errorMessage.INVALID_OTP);
 
 
         const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
@@ -147,7 +149,7 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserOtpVerif
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.statusMessage = "Login Successful";
-        res.status(200).json({ ...await sendCustomResponse('Login Successful', UserData), AccessToken, RefreshToken });
+        res.status(200).json({ ...await sendCustomResponse(responseMessage.SUCCESS_LOGIN, UserData), AccessToken, RefreshToken });
 
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
@@ -168,16 +170,16 @@ export const forgotPassword = async (req: Request<{}, any, { email: string }>, r
         const { email } = req.body;
 
         const existingUser = await findUserByEmail(email);
-        if (!existingUser) throw new NotFoundError('User not found with given email id');
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
         const sendMailInfo = await sendOtpForPasswordReset(existingUser._id.toString(), existingUser.email);
         logger.info(sendMailInfo);
-        if (sendMailInfo.accepted.length <= 0) throw new Error('Email Validation failed while creating user');
+        if (sendMailInfo.accepted.length <= 0) throw new Error(errorMessage.EMAIL_VALIDATION_FAILED);
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
-            "message": "OTP sent for reset password.",
-            "emailSent": true
+            message: responseMessage.OTP_SENT_FOR_EMAIL_VERIFICATION,
+            emailSent: true
         });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
@@ -197,19 +199,17 @@ export const resetPassword = async (req: Request<{}, any, UserOtpVerifyBody>, re
         const { otp, email, confirmPassword } = req.body;
 
         const existingUser = await findUserByEmail(email);
-        if (!existingUser) throw new NotFoundError('User not found with given email id');
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
         const isValidOtp = await verifyOtp(existingUser._id.toString(), otp);
-        if (!isValidOtp) throw new AuthenticationError("Invalid Otp");
-
+        if (!isValidOtp) throw new AuthenticationError(errorMessage.INVALID_OTP);
 
         const password = await hashPassword(confirmPassword);
         const updateBody: UserUpdateArgs = { $set: { password: password } };
-
         const updatedUser = await updateUserById(existingUser._id.toString(), updateBody);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse('Password updated successfully'));
+        res.status(200).json(await sendCustomResponse(responseMessage.PASSWORD_UPDATED));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);

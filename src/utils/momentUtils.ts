@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 import { DateRange, TimeInHHMM, YYYYMMDD } from "../types";
 import { logFunctionInfo } from './logger';
 import { DateStatus, FunctionStatus } from '../enums';
+import { errorMessage } from '../constants';
 
 
 /**
@@ -19,15 +20,15 @@ export const getDateFromInput = (dateString: YYYYMMDD, timeString: TimeInHHMM, t
     logFunctionInfo('getDateFromInput', FunctionStatus.start);
 
     if (!moment(dateString, 'YYYY-MM-DD', true).isValid()) {
-        throw new Error("Invalid date format. Expected format: YYYY-MM-DD.");
+        throw new Error(errorMessage.INVALID_DATE_FORMAT);
     }
 
     if (!moment(timeString, 'HH:mm', true).isValid()) {
-        throw new Error("Invalid time format. Expected format: HH:mm.");
+        throw new Error(errorMessage.INVALID_TIME_INPUT);
     }
 
     if (!moment.tz.zone(timeZone)) {
-        throw new Error("Invalid timezone format.");
+        throw new Error(errorMessage.INVALID_TIMEZONE);
     }
 
     const dateTimeString = `${dateString}T${timeString}`;
@@ -46,7 +47,7 @@ export const getDayRange = (isoDateString: string): DateRange => {
     const date = moment(isoDateString);
 
     if (!date.isValid()) {
-        throw new Error("Invalid date provided.");
+        throw new Error(errorMessage.INVALID_DATE_ISO);
     }
 
     const startOfDay = date.startOf('day').toISOString();
@@ -68,11 +69,11 @@ export const getDateRange = (rangeStartDate: string, rangeEndDate: string): Date
     const endDate = moment(rangeEndDate);
 
     if (!startDate.isValid() || !endDate.isValid()) {
-        throw new Error("Invalid rangeStartDate or rangeEndDate provided.");
+        throw new Error(errorMessage.INVALID_DATE_FORMAT);
     }
 
     if (startDate.isAfter(endDate)) {
-        throw new Error("rangeStartDate cannot be after rangeEndDate.");
+        throw new Error(errorMessage.INVALID_DATE_RANGE);
     }
 
     return [startDate.toISOString(), endDate.toISOString()];
@@ -87,11 +88,11 @@ export const updateHoursAndMinutesInISODate = (isoDateString: string, timeString
     logFunctionInfo("updateHoursAndMinutesInISODate", FunctionStatus.start);
 
     if (!moment(isoDateString, moment.ISO_8601, true).isValid()) {
-        throw new Error("Invalid date format. Expected an ISO string.");
+        throw new Error(errorMessage.INVALID_DATE_ISO);
     }
 
     if (!moment(timeString, 'HH:mm', true).isValid()) {
-        throw new Error("Invalid time format. Expected format: HH:MM.");
+        throw new Error(errorMessage.INVALID_TIME_INPUT);
     }
 
     const updatedMoment = moment(isoDateString).utc().set({
@@ -109,12 +110,15 @@ export const updateHoursAndMinutesInISODate = (isoDateString: string, timeString
 */
 export const convertToISOString = (string: string): string => {
     const time = moment(string);
-    if (!time.isValid()) throw new Error('! inValid date string');
+    if (!time.isValid()) throw new Error(errorMessage.INVALID_DATE_AS_DATE);
 
     return time.toISOString();
 }
 
-
+/**
+ * To compare inputed date with current date
+ * @returns the status as `past`, `present` or `future`
+*/
 export const compareDatesWithCurrentDate = (inputDate: string): DateStatus => {
     logFunctionInfo('compareDatesWithCurrentDate', FunctionStatus.start);
 

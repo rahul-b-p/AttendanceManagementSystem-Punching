@@ -6,6 +6,7 @@ import { isValidObjectId, permissionValidator } from "../validators";
 import { verifyAccessToken, verifyRefreshToken } from "../jwt";
 import { blacklistToken, checkRefreshTokenExistsById, findUserById, isTokenBlacklisted } from "../services";
 import { FunctionStatus, Roles } from "../enums";
+import { errorMessage } from "../constants";
 
 
 
@@ -77,24 +78,24 @@ export const roleAuth = (...allowedRole: Roles[]) => {
         logFunctionInfo(functionName, FunctionStatus.start);
         try {
             const id = req.payload?.id;
-            if (!id) throw new Error('The user ID was not added to the payload by the authentication middleware.');
+            if (!id) throw new InternalServerError(errorMessage.NO_USER_ID_IN_PAYLOAD);
 
             const existingUser = await findUserById(id);
-            if (!existingUser) throw new Error('Losses the UserId or User Data of an authorized Request! ')
+            if (!existingUser) throw new AuthenticationError()
 
             const { role } = existingUser;
             if (!Object.values(Roles).includes(role as Roles)) {
                 const permissionset = getPermissionSetFromDefaultRoles(...allowedRole);
                 const requiredAction = getActionFromMethod(req.method);
                 const isPermitted = await permissionValidator(permissionset, role, requiredAction);
-                if (!isPermitted) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+                if (!isPermitted) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
             }
-            else if (!allowedRole.includes(role as Roles)) return next(new ForbiddenError('Forbidden: Insufficient role privileges'));
+            else if (!allowedRole.includes(role as Roles)) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
 
             next();
         } catch (error: any) {
             logFunctionInfo(functionName, FunctionStatus.fail, error.message);
-            next(new InternalServerError('Something went wrong'));
+            next(error);
         }
     }
 }

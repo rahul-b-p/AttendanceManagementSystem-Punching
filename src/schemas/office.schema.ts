@@ -1,28 +1,29 @@
 import { z } from "zod";
 import { objectIdRegex, pageNumberRegex } from "../utils";
 import { OfficeSortKeys } from "../enums";
+import { errorMessage } from "../constants";
 
 
 
 
 export const createOfficeSchema = z.object({
-    officeName: z.string({ message: "officeName is required" }),
-    street: z.string({ message: "street is required" }),
-    city: z.string({ message: "city is required" }),
-    state: z.string({ message: "state is required" }),
-    zip_code: z.string({ message: "zip code is required" }),
-    latitude: z.number({ message: "latitude required" }),
-    longitude: z.number({ message: "longitude required" }),
-    radius: z.number({ message: "radius required and should be calculated in meters" })
+    officeName: z.string({ message: errorMessage.OFFICE_NAME_REQUIRED }),
+    street: z.string({ message: errorMessage.STREET_REQUIRED }),
+    city: z.string({ message: errorMessage.CITY_REQUIRED }),
+    state: z.string({ message: errorMessage.STATE_REQUIRED }),
+    zip_code: z.string({ message: errorMessage.ZIP_CODE_REQUIRED }),
+    latitude: z.number({ message: errorMessage.LATITUDE_REQUIRED }),
+    longitude: z.number({ message: errorMessage.LONGITUDE_REQUIRED }),
+    radius: z.number({ message: errorMessage.RADIUS_REQUIRED })
 }).strict();
 
 
 export const officeFilterQuerySchema = z.object({
-    pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
-    pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
+    pageNo: z.string({ message: errorMessage.PAGE_NUMBER_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
+    pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS),
     city: z.string().optional(),
     state: z.string().optional(),
-    sortKey: z.nativeEnum(OfficeSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional()
+    sortKey: z.nativeEnum(OfficeSortKeys, { message: errorMessage.INVALID_SORT_KEY }).optional()
 }).strict();
 
 
@@ -47,7 +48,7 @@ export const updateOfficeSchema = z.object({
         if (isAddressChanged && (!data.latitude || !data.longitude)) {
             ctx.addIssue({
                 code: "custom",
-                message: "Latitude and longitude must be provided when any address field is updated (street, city, state, or zip_code).",
+                message: errorMessage.LAT_LONG_REQUIRED_FOR_ADDRESS_UPDATE,
                 path: ["latitude", "longitude"],
             });
         }
@@ -55,7 +56,7 @@ export const updateOfficeSchema = z.object({
         if (isLocationChanged && (!data.street && !data.city && !data.state && !data.zip_code)) {
             ctx.addIssue({
                 code: "custom",
-                message: "Address fields (street, city, state, zip_code) must be updated when location (latitude or longitude) is modified.",
+                message: errorMessage.ADDRESS_FIELDS_REQUIRED_FOR_LOCATION_UPDATE,
                 path: ["street", "city", "state", "zip_code"],
             });
         }
@@ -71,17 +72,7 @@ export const updateOfficeSchema = z.object({
             data.longitude ||
             data.radius,
         {
-            message: "At least one field is required for update.",
+            message: errorMessage.AT_LEAST_ONE_FIELD_REQUIRED_FOR_UPDATE,
         }
     );
 
-
-
-export const officeUserActionSchema = z.object({
-    manager: z.string().regex(objectIdRegex, "Invalid ObjectId").optional(),
-    employee: z.string().regex(objectIdRegex, "Invalid ObjectId").optional()
-}).strict()
-    .refine(data =>
-        data.employee || data.manager,
-        { message: "any of the field should be require to assign a user in office" }
-    );

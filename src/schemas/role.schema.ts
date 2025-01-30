@@ -1,47 +1,50 @@
 import { z } from "zod";
 import { PermissionLevel, Roles } from "../enums";
 import { pageNumberRegex } from "../utils";
+import { errorMessage } from "../constants";
 
 
 
 const permissionSchema = z.nativeEnum(PermissionLevel, {
-    message: "level should be all, group or own"
+    message: errorMessage.INVALID_PERMISSION_LEVEL
 }).optional();
 
 export const createCustomRoleSchema = z.object({
-    role: z.string({ message: "role name is required!" }).min(3),
+    role: z.string({ message: errorMessage.ROLE_NAME_REQUIRED }).min(3),
     create: permissionSchema,
     read: permissionSchema,
     update: permissionSchema,
     delete: permissionSchema
 }).strict()
     .refine(data => !Object.values(Roles).includes(data.role as Roles), {
-        message: `Role cannot be one of the default roles: ${Object.values(Roles).join(", ")}`
+        message: errorMessage.CANNOT_BE_DEFAULT_ROLE + Object.values(Roles).join(", ")
     })
     .refine(data => data.create || data.read || data.update || data.delete, {
-        message: "any of permission field is required"
+        message: errorMessage.PERMISSION_FIELD_REQUIRED
     });
 
 
 
-    
+
 export const roleFilterSchema = z.object({
-    pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
-    pageLimit: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits")
+    pageNo: z.string({ message: errorMessage.PAGE_NUMBER_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
+    pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS)
 }).strict();
 
 
 
 export const updateCustomRoleSchema = z.object({
-    role: z.string({ message: "role name is required!" }).min(3).optional(),
+    role: z.string().min(3).optional(),
     create: permissionSchema,
     read: permissionSchema,
     update: permissionSchema,
     delete: permissionSchema
 }).strict()
     .refine(data => !Object.values(Roles).includes(data.role as Roles), {
-        message: `Role cannot be one of the default roles: ${Object.values(Roles).join(", ")}`
+        message: errorMessage.CANNOT_BE_DEFAULT_ROLE + Object.values(Roles).join(", ")
     })
     .refine(data => data.create || data.read || data.update || data.delete || data.role, {
-        message: "role, or permission feilds are required for updation"
+        message: errorMessage.REQUIRED_FOR_ROLE_UPDATE
     });
+
+    

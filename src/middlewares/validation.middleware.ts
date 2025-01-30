@@ -4,6 +4,7 @@ import { BadRequestError } from "../errors";
 import { InternalServerError } from "../errors";
 import { logFunctionInfo } from "../utils";
 import { FunctionStatus } from "../enums";
+import { errorMessage } from "../constants";
 
 
 
@@ -13,17 +14,17 @@ import { FunctionStatus } from "../enums";
 export const validateReqBody = (schema: ZodSchema) => {
     return (req: Request, res: Response, next: NextFunction) => {
         logFunctionInfo("validateReqBody", FunctionStatus.start);
-        
+
         try {
             req.body = schema.parse(req.body);
             next();
         } catch (error) {
             if (error instanceof ZodError) {
                 error.errors.map((e) => {
-                    return next(new BadRequestError(`Bad Request, ${e.message}`));
+                    return next(new BadRequestError(errorMessage.INVALID_REQUEST_BODY + e.message));
                 })
             }
-            else next(new InternalServerError('Validation failed'));
+            else next(new InternalServerError(errorMessage.VALIDATION_FAILED));
         }
     };
 }
@@ -42,10 +43,10 @@ export const validateReqQuery = (schema: ZodSchema) => {
         } catch (error) {
             if (error instanceof ZodError) {
                 error.errors.map((e) => {
-                    return next(new BadRequestError(`Bad Request, Invalid Query:${e.message}`));
+                    return next(new BadRequestError(errorMessage.INVALID_REQUEST_QUERY + e.message));
                 })
             }
-            else next(new InternalServerError('Validation failed'));
+            else next(new InternalServerError(errorMessage.VALIDATION_FAILED));
         }
     };
 }

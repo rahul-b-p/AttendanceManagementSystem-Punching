@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { roleAuth, validateReqBody, validateReqQuery } from "../middlewares";
-import { createOfficeSchema, officeFilterQuerySchema, officeUserActionSchema, updateOfficeSchema } from "../schemas";
+import { createOfficeSchema, officeFilterQuerySchema, updateOfficeSchema } from "../schemas";
 import { officeController } from "../controllers";
 import { Roles } from "../enums";
 
@@ -21,10 +21,10 @@ router.put('/:id', roleAuth(Roles.admin), validateReqBody(updateOfficeSchema), o
 router.delete('/:id', roleAuth(Roles.admin), officeController.deleteOffice);
 
 // API to assign employee or manager to an office --role based access
-router.put('/assign/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.assignToOffice);
+router.put('/assign/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), officeController.assignToOffice);
 
 // API to remove employee or manager from an office --role based access
-router.put('/remove/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), validateReqBody(officeUserActionSchema), officeController.removeFromOffice);
+router.put('/remove/:officeId/:userId/:role', roleAuth(Roles.admin, Roles.manager), officeController.removeFromOffice);
 
 // API to view all trash office data -- only for admin
 router.get('/trash', roleAuth(Roles.admin), validateReqQuery(officeFilterQuerySchema), officeController.fetchOfficeTrash);

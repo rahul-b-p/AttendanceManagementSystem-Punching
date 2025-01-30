@@ -5,6 +5,7 @@ import { Office } from "../models"
 import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData, LocationWithRadius } from "../types";
 import { logFunctionInfo } from "../utils";
 import { updateUserById } from "./user.service";
+import { errorMessage } from "../constants";
 
 
 
@@ -212,7 +213,7 @@ export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
         const deletedOffice = await Office.findByIdAndUpdate(_id, { isDeleted: true });
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        if (!deletedOffice) throw Error("existingOffice Can't find while deletion");
+        if (!deletedOffice) throw Error(errorMessage.OFFICE_NOT_FOUND);
         else return true;
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
@@ -240,7 +241,7 @@ export const setUserToOfficeById = async (_id: string, userId: string, role: Rol
         else if (role == Roles.employee) {
             updateObject.employees = userId;
         }
-        else throw new Error(`Can only assign manger or employee to an office model`)
+        else throw new Error(errorMessage.INVALID_OFFICE_USER_ROLE)
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {
             $addToSet: updateObject,
@@ -267,8 +268,7 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        if (!userId) throw new Error('UserId must be provided.');
-
+        
         const updateObject: any = {};
         if (role == Roles.manager) {
             updateObject.managers = userId;
@@ -276,7 +276,7 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
         else if (role == Roles.employee) {
             updateObject.employees = userId;
         }
-        else throw new Error(`Can only assign manger or employee to an office model`)
+        else throw new Error(errorMessage.INVALID_OFFICE_USER_ROLE)
 
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {

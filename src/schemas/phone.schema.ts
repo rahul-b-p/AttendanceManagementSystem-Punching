@@ -1,7 +1,8 @@
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { z } from "zod";
+import { errorMessage } from "../constants";
 
-export const phoneSchema = z.string({ message:"Phone number is required."}).refine(
+export const phoneSchema = z.string({ message: "Phone number is required." }).refine(
     (phone) => isValidPhoneNumber(phone),
-    { message: 'Invalid phone number format' }
+    { message: errorMessage.INVALID_PHONE_NUMBER_FORMAT }
 );

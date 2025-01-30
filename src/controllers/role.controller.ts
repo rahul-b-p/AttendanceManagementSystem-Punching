@@ -6,6 +6,7 @@ import { deleteCustomRoleById, fetchCustomRoles, findCustomRole, insertRole, upd
 import { BadRequestError, ConflictError, NotFoundError } from "../errors";
 import { isValidObjectId } from "../validators";
 import { FunctionStatus } from "../enums";
+import { errorMessage, responseMessage, } from "../constants";
 
 
 
@@ -21,12 +22,12 @@ export const createCustomRole = async (req: customRequestWithPayload<{}, any, In
     try {
         const { role } = req.body;
         const existingRole = await findCustomRole(role);
-        if (existingRole) throw new ConflictError("Requested custom role Already exists");
+        if (existingRole) throw new ConflictError(errorMessage.CUSTOM_ROLE_ALREADY_EXISTS);
 
         const newCustomRole = await insertRole(req.body);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(201).json(await sendCustomResponse("new customized role created", newCustomRole))
+        res.status(201).json(await sendCustomResponse(responseMessage.ROLE_CREATED, newCustomRole))
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -46,7 +47,7 @@ export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, 
         const { pageNo, pageLimit } = req.query;
         const fetchResult = await fetchCustomRoles(Number(pageNo), Number(pageLimit));
 
-        const responseMessage = fetchResult ? 'User Data Fetched Successfully' : 'No Users found to show';
+        const message = fetchResult ? responseMessage.ROLE_DATA_FETCHED : errorMessage.ROLE_DATA_NOT_FOUND;
         let PageNationFeilds;
         if (fetchResult) {
             const { data, ...pageInfo } = fetchResult
@@ -55,7 +56,7 @@ export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, 
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
-            success: true, responseMessage, ...fetchResult, ...PageNationFeilds
+            success: true, message, ...fetchResult, ...PageNationFeilds
         });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
@@ -75,20 +76,19 @@ export const updateCustomRole = async (req: customRequestWithPayload<{ id: strin
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
-
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
 
         const { role } = req.body;
         if (role) {
             const existingRole = await findCustomRole(role);
-            if (existingRole) throw new ConflictError('Cant Update role, its already exists!');
+            if (existingRole) throw new ConflictError(errorMessage.ROLE_ALREADY_EXISTS);
         }
 
         const updatetedRole = await updateCustomRoleById(id, req.body);
-        if (!updatetedRole) throw new NotFoundError('Requested role not found for an updation');
+        if (!updatetedRole) throw new NotFoundError(errorMessage.ROLE_NOT_FOUND);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse('customRole Updated SuccessFully', updatetedRole));
+        res.status(200).json(await sendCustomResponse(responseMessage.ROLE_UPDATED, updatetedRole));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -108,13 +108,13 @@ export const deleteCustomRole = async (req: customRequestWithPayload<{ id: strin
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
 
         const isDeleted = await deleteCustomRoleById(id);
-        if (!isDeleted) throw new NotFoundError("Requested Custom Role Not Found");
+        if (!isDeleted) throw new NotFoundError(errorMessage.ROLE_NOT_FOUND);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse("Customized role requested successfully"));
+        res.status(200).json(await sendCustomResponse(responseMessage.ROLE_DELETED));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);

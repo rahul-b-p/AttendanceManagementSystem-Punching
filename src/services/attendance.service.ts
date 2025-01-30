@@ -6,6 +6,7 @@ import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, Attendan
 import { calculatePageSkip, getDayRange, getTimeStamp, logFunctionInfo, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
 import { validateAttendanceQuery } from "../validators";
 import moment from "moment";
+import { errorMessage } from "../constants";
 
 /**
  * Checks if a punch-in record exists for the specified user on the given date.
@@ -115,15 +116,15 @@ export const comparePunchInPunchOut = (punchIn?: string, punchOut?: string, exis
 
     try {
         if (!punchIn && !punchOut) {
-            throw new Error('Either punchIn or punchOut argument is required');
+            throw new Error(errorMessage.PUNCH_IN_OR_OUT_REQUIRED);
         }
 
         if (punchIn && !moment(punchIn, moment.ISO_8601, true).isValid()) {
-            throw new Error('Invalid punchIn time. Must be an ISO string.');
+            throw new Error(errorMessage.INVALID_TIME_FORMAT);
         }
 
         if (punchOut && !moment(punchOut, moment.ISO_8601, true).isValid()) {
-            throw new Error('Invalid punchOut time. Must be an ISO string.');
+            throw new Error(errorMessage.INVALID_TIME_FORMAT);
         }
 
         const punchInMoment = punchIn ? moment(punchIn) : null;
@@ -149,7 +150,7 @@ export const comparePunchInPunchOut = (punchIn?: string, punchOut?: string, exis
                 : true;
         }
 
-        throw new Error('No data provided for comparison. Invalid usage of punch-in and punch-out time comparison.');
+        throw new Error(errorMessage.INVALID_PUNCH_IN_OUT_COMPARISON);
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw error;
@@ -181,7 +182,6 @@ export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
  * Aggregates attendance data to count the number of records that match the given filter criteria.
  * This function applies the specified additional fields and filter conditions to an aggregation query 
  */
-
 export const getAttendnaceFilterCount = async (addFeilds: Record<string, any>, matchFilter: Record<string, any>): Promise<number> => {
     logFunctionInfo("getAttendnaceFilterCount", FunctionStatus.start);
 
@@ -295,7 +295,6 @@ export const aggregateAttendanceData = async (
  * Fetches attendance data from the database with pagination, filtering, and sorting.
  * Also fetching the page info(total pages, pagesize, total data, current page).
  */
-
 export const fetchAttendanceData = async (page: number, limit: number, query: AttendanceQuery, sort: AttendanceSortArgs): Promise<AttendanceFetchResult | null> => {
     const functionName = 'fetchAttendanceData';
     logFunctionInfo(functionName, FunctionStatus.start);

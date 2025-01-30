@@ -7,6 +7,7 @@ import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from ".
 import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById, softDeleteOfficeById, getDefaultRoleFromUserRole, isManagerAuthorizedForEmployee } from "../services";
 import { Actions, FetchType, FunctionStatus, Roles } from "../enums";
 import { Types } from "mongoose";
+import { errorMessage, responseMessage } from "../constants";
 
 
 
@@ -26,15 +27,15 @@ export const createOffice = async (req: customRequestWithPayload<{}, any, Create
         const location: Location = { latitude, longitude };
 
         const isValidLocation = await validateAdressWithLocation(adress, location);
-        if (!isValidLocation) throw new BadRequestError("Location not Match with Inputed Adress");
+        if (!isValidLocation) throw new BadRequestError(errorMessage.LOCATION_NOT_MATCHED);
 
         const isUniqueLocation = await validateLocationUniqueness(location);
-        if (!isUniqueLocation) throw new ConflictError("Already an office exists on the location");
+        if (!isUniqueLocation) throw new ConflictError(errorMessage.OFFICE_ALREADY_EXISTS_AT_LOCATION);
 
         const insertedOffice = await insertOffice({ officeName, adress, location, radius });
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(201).json(await sendCustomResponse("New office created successfully", insertedOffice));
+        res.status(201).json(await sendCustomResponse(responseMessage.OFFICE_CREATED, insertedOffice));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -58,7 +59,7 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
 
         const fetchResult = await fetchOffices(FetchType.active, Number(pageNo), Number(pageLimit), query, sortArgs);
 
-        const responseMessage = fetchResult ? 'Office Data Fetched Successfully' : 'No Users found to show';
+        const message = fetchResult ? responseMessage.OFFICE_DATA_FETCHED : errorMessage.OFFICE_DATA_NOT_FOUND;
         let PageNationFeilds;
         if (fetchResult) {
             const { data, ...pageInfo } = fetchResult
@@ -67,7 +68,7 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
-            success: true, responseMessage, ...fetchResult, ...PageNationFeilds
+            success: true, message, ...fetchResult, ...PageNationFeilds
         });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
@@ -88,10 +89,10 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_EMAIL_ID);
 
         const existingOffice = await findOfficeById(id);
-        if (!existingOffice) throw new NotFoundError("Requested Office not found!");
+        if (!existingOffice) throw new NotFoundError(errorMessage.OFFICE_NOT_FOUND);
 
         const { officeName, street, city, state, zip_code, latitude, longitude, radius } = req.body;
 
@@ -120,12 +121,12 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
 
 
                 const isUniqueLocation = await validateLocationUniqueness(location);
-                if (!isUniqueLocation) throw new ConflictError("Already an office exists on the location");
+                if (!isUniqueLocation) throw new ConflictError(errorMessage.OFFICE_ALREADY_EXISTS_AT_LOCATION);
             }
         }
 
         const isValidLocation = await validateAdressWithLocation(adress, location);
-        if (!isValidLocation) throw new BadRequestError("Location not Match with Inputed Adress");
+        if (!isValidLocation) throw new BadRequestError(errorMessage.LOCATION_NOT_MATCHED);
 
 
 
@@ -133,7 +134,7 @@ export const updateOffice = async (req: customRequestWithPayload<{ id: string },
         const updatedOffice = await updateOfficeById(id, updateOfficeData);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse("Office Updated Successfully", updatedOffice));
+        res.status(200).json(await sendCustomResponse(responseMessage.OFFICE_UPDATED, updatedOffice));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -154,13 +155,13 @@ export const deleteOffice = async (req: customRequestWithPayload<{ id: string }>
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
 
         const isDeleted = await softDeleteOfficeById(id);
-        if (!isDeleted) throw new NotFoundError("Requested office not found!");
+        if (!isDeleted) throw new NotFoundError(errorMessage.OFFICE_NOT_FOUND);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse("Office Deleted Successfully"));
+        res.status(200).json(await sendCustomResponse(responseMessage.OFFICE_DELETED));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -186,21 +187,22 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
         const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
 
         const { officeId, userId, role } = req.params;
-        const isValidId = isValidObjectId(officeId);
-        if (!isValidId) throw new BadRequestError("Requested with an inValid office id");
+        const isValidOfficeId = isValidObjectId(officeId);
+        const isValidUserID = isValidObjectId(userId);
+        if (!isValidOfficeId || !isValidUserID) throw new BadRequestError(errorMessage.INVALID_ID);
 
         const existingOffice = await findOfficeById(officeId);
-        if (!existingOffice) throw new NotFoundError("Requested Office not found!");
+        if (!existingOffice) throw new NotFoundError(errorMessage.OFFICE_NOT_FOUND);
 
         if (role == Roles.manager) {
-            if (reqOwnerRole !== Roles.admin) throw new ForbiddenError("Insufficient Permission, to add manager to your office");
+            if (reqOwnerRole !== Roles.admin) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
 
             const managerData = await findUserById(userId);
-            if (!managerData) throw new NotFoundError(`User with ID ${userId} not found to assign as an employee in the office`);
+            if (!managerData) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
             const managerDataDefaultRole = await getDefaultRoleFromUserRole(managerData.role);
 
-            if (managerData.officeId && managerData.officeId.toString() == officeId) throw new ConflictError("Requested user was alraedy added on this office");
-            else if (managerData.officeId) throw new ConflictError("Requested user was already added in other office");
+            if (managerData.officeId && managerData.officeId.toString() == officeId) throw new ConflictError(errorMessage.USER_ALREADY_IN_OFFICE);
+            else if (managerData.officeId) throw new ConflictError(errorMessage.USER_IN_OTHER_OFFICE);
 
             const managerPermit = getPermissionSetFromDefaultRoles(Roles.manager, Roles.admin);
 
@@ -209,27 +211,27 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
                     return permissionValidator(managerPermit, managerData.role, item);
                 }));
 
-                if (permitted.includes(false)) throw new ForbiddenError(`User with ID ${userId} do not permitted to assign as a manager!`);
+                if (permitted.includes(false)) throw new ForbiddenError(errorMessage.NOT_PERMITTED_AS_MANAGER);
             }
         }
 
         else if (role == Roles.employee) {
             if (reqOwnerRole !== Roles.admin) {
-                if (!reqOwner.officeId) throw new ForbiddenError("You are not assigned in any office, can't assign employees to office");
+                if (!reqOwner.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
             }
             const employeeData = await findUserById(userId);
-            if (!employeeData) throw new NotFoundError(`User with ID ${userId} not found to assign as an employee in the office`);
+            if (!employeeData) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
-            if (employeeData.officeId && employeeData.officeId.toString() == officeId) throw new ConflictError("Requested user was alraedy added on this office");
-            else if (employeeData.officeId) throw new ConflictError("Requested user was already added in other office");
+            if (employeeData.officeId && employeeData.officeId.toString() == officeId) throw new ConflictError(errorMessage.USER_ALREADY_IN_OFFICE);
+            else if (employeeData.officeId) throw new ConflictError(errorMessage.USER_IN_OTHER_OFFICE);
 
         }
-        else throw new BadRequestError("You can assign either  manager or employee to an office");
+        else throw new BadRequestError(errorMessage.INVALID_OFFICE_USER_ROLE);
 
         const assignedOfficeBody = await setUserToOfficeById(officeId, userId, role);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse("Successfully assigned into office", assignedOfficeBody));
+        res.status(200).json(await sendCustomResponse(responseMessage.USER_ASSIGNED_TO_OFFICE, assignedOfficeBody));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -256,31 +258,32 @@ export const removeFromOffice = async (req: customRequestWithPayload<{ officeId:
 
         const { officeId, role, userId } = req.params;
 
-        const isValidId = isValidObjectId(officeId);
-        if (!isValidId) throw new BadRequestError("Requested with an inValid office id");
+        const isValidOfficeId = isValidObjectId(officeId);
+        const isValidUserId = isValidObjectId(userId);
+        if (!isValidOfficeId || !isValidUserId) throw new BadRequestError(errorMessage.INVALID_ID);
 
         const existingOffice = await findOfficeById(officeId);
-        if (!existingOffice) throw new NotFoundError("Requested Office not found!");
+        if (!existingOffice) throw new NotFoundError(errorMessage.OFFICE_NOT_FOUND);
 
         if (reqOwnerRole == Roles.manager) {
             const isAuthorized = isManagerAuthorizedForEmployee(userId, reqOwnerId);
-            if (!isAuthorized || role == Roles.manager) throw new ForbiddenError("User not authorized to you for, take any actions");
+            if (!isAuthorized || role == Roles.manager) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
         }
 
         if (role == Roles.manager) {
-            if (!existingOffice.managers.includes(new Types.ObjectId(userId))) throw new NotFoundError(`User with Id ${userId} not exists on the given office`);
+            if (!existingOffice.managers.includes(new Types.ObjectId(userId))) throw new NotFoundError(errorMessage.MANAGER_NOT_FOUND_IN_OFFICE);
         }
 
         else if (role == Roles.employee) {
-            if (!existingOffice.employees.includes(new Types.ObjectId(userId))) throw new NotFoundError(`User with Id ${userId} not exists on the given office`);
+            if (!existingOffice.employees.includes(new Types.ObjectId(userId))) throw new NotFoundError(errorMessage.EMPLOYEE_NOT_FOUND_IN_OFFICE);
         }
 
-        else throw new BadRequestError("Only Manager and Employee categories are  accessible in office");
+        else throw new BadRequestError(errorMessage.INVALID_OFFICE_USER_ROLE);
 
         const userRemovedOfficeBody = await unsetUserFromOfficeById(officeId, userId, role);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse("Successfully removed user from the office", userRemovedOfficeBody));
+        res.status(200).json(await sendCustomResponse(responseMessage.USER_REMOVED_FROM_OFFICE, userRemovedOfficeBody));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -304,7 +307,7 @@ export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, an
 
         const fetchResult = await fetchOffices(FetchType.trash, Number(pageNo), Number(pageLimit), query, sortArgs);
 
-        const responseMessage = fetchResult ? 'Office Trash Data Fetched Successfully' : 'Your trash is empty';
+        const message = fetchResult ? responseMessage.OFFICE_TRASH_DATA_FETCHED : errorMessage.TRASH_EMPTY;
         let PageNationFeilds;
         if (fetchResult) {
             const { data, ...pageInfo } = fetchResult
@@ -313,7 +316,7 @@ export const fetchOfficeTrash = async (req: customRequestWithPayload<{}, any, an
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json({
-            success: true, message: responseMessage, ...fetchResult, ...PageNationFeilds
+            success: true, message: message, ...fetchResult, ...PageNationFeilds
         });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
@@ -334,13 +337,13 @@ export const deleteOfficeTrash = async (req: customRequestWithPayload<{ id: stri
     try {
         const { id } = req.params;
         const isValidId = isValidObjectId(id);
-        if (!isValidId) throw new BadRequestError("Invalid Id Provided");
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
 
         const isDeleted = await deleteOfficeById(id);
-        if (!isDeleted) throw new NotFoundError("Requested office not found on trash!");
+        if (!isDeleted) throw new NotFoundError(errorMessage.OFFICE_NOT_FOUND_IN_TRASH);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json(await sendCustomResponse("Office Data Deleted Successfully from trash"));
+        res.status(200).json(await sendCustomResponse(responseMessage.OFFICE_DATA_DELETED_FROM_TRASH));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error);
         next(error);

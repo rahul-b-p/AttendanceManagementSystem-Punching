@@ -4,6 +4,7 @@ import { geocodeAddress } from "../services";
 import { Adress, Location, LocationWithRadius } from "../types";
 import { logFunctionInfo } from "../utils";
 import { FunctionStatus } from "../enums";
+import { errorMessage } from "../constants";
 
 
 /**
@@ -52,7 +53,7 @@ export const validateLocationWithinInstitutionRadius = (personLocation: Location
 
     try {
         if (!personLocation || !institutionLocation || institutionRadius <= 0) {
-            throw new Error('Invalid input parameters.');
+            throw new Error(errorMessage.INVALID_INPUT_PARAMETERS);
         }
 
         const distance = getDistance(personLocation, institutionLocation);
@@ -60,7 +61,7 @@ export const validateLocationWithinInstitutionRadius = (personLocation: Location
         return distance <= institutionRadius;
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
-        throw new Error(`Error validating location: ${error.message}`);
+        throw new Error(error.message);
     }
 }
 

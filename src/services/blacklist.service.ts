@@ -19,7 +19,7 @@ export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
         return existOnBlacklist !== null;
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
-        throw new Error("Can't check the token now");
+        throw new Error(error.message);
     }
 }
 
@@ -36,10 +36,10 @@ export const blacklistToken = async (token: string): Promise<IBlackList> => {
         const blacklistedToken = new Blacklist({ token, expireAt });
         await blacklistedToken.save();
 
-        logFunctionInfo(functionName, FunctionStatus.start);
+        logFunctionInfo(functionName, FunctionStatus.success);
         return blacklistedToken;
-    } catch (error) {
-        logFunctionInfo(functionName, FunctionStatus.start);
-        throw new Error("Can't check the token now");
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        throw new Error(error.message);
     }
 }

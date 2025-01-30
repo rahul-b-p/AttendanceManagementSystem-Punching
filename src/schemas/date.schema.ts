@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { HHMMregex, YYYYMMDDregex } from "../utils";
+import { errorMessage } from "../constants";
 
 
 
 export const YYYYMMDDSchema = z.string({
-    message: "date is required",
+    message: errorMessage.DATE_IS_REQUIRED,
 }).regex(
     YYYYMMDDregex,
-    "Date must be in YYYY-MM-DD format"
+    errorMessage.INVALID_DATE_FORMAT
 ).refine((dateStr) => {
     const [year, month, day] = dateStr.split("-").map(Number);
 
@@ -22,7 +23,7 @@ export const YYYYMMDDSchema = z.string({
 });
 
 export const HHMMSchema = z.string(({
-    message:"punch in and punch out time should be provided"
+    message: errorMessage.PUNCH_IN_OUT_TIME_REQUIRED
 })).regex(HHMMregex, {
-    message: "Invalid time format. Expected HH:MM in 24-hour format."
+    message: errorMessage.INVALID_TIME_INPUT
 });
