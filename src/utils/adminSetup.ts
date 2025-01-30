@@ -1,25 +1,27 @@
 import { ADMIN_EMAIL, ADMIN_PHONE, ADMIN_USERNAME } from "../config";
-import { Roles } from "../enums";
+import { errorMessage, responseMessage } from "../constants";
+import { FunctionStatus, Roles } from "../enums";
 import { createUserSchema } from "../schemas";
 import { checkAdminExists, insertUser, validateEmailUniqueness } from "../services";
 import { UserInsertArgs } from "../types";
 import { checkEmailValidity } from "../validators";
-import { logger } from "./logger";
+import { logFunctionInfo, logger } from "./logger";
 
 /**
  * Creates a default admin using system admin credentials from the environment variables, if no admin exists in the system.
  */
-export const createDefaultAdmin = async ():Promise<void> => {
+export const createDefaultAdmin = async (): Promise<void> => {
+    const functionName = 'createDefaultAdmin';
+    logFunctionInfo(functionName, FunctionStatus.start);
     try {
-
         const isAdminExists = await checkAdminExists()
         if (isAdminExists) {
-            logger.info('Admin exists.');
+            logFunctionInfo(functionName, FunctionStatus.success, 'Admin Exists');
             return;
         }
 
         const isValidEmail = await checkEmailValidity(ADMIN_EMAIL);
-        if (!isValidEmail) throw new Error("Invalid Email Provided on env");
+        if (!isValidEmail) throw new Error(errorMessage.INVALID_EMAIL_ID);
 
         const user: UserInsertArgs = {
             username: ADMIN_USERNAME,
@@ -31,13 +33,13 @@ export const createDefaultAdmin = async ():Promise<void> => {
 
         const isUniqueEmial = await validateEmailUniqueness(user.username);
         if (!isUniqueEmial) {
-            throw new Error("Admin email is not unique");
+            throw new Error(errorMessage.EMAIL_ALREADY_IN_USE);
         }
 
         const defaultAdmin = await insertUser(user);
-        logger.info(`Default admin user created successfully with ID: ${defaultAdmin._id}`);
+        logFunctionInfo(functionName, FunctionStatus.success, responseMessage.DEFAULT_ADMIN_CREATED + defaultAdmin._id);
     } catch (error: any) {
-        logger.error(`Failed to create a Default Admin:${error.message}`);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         process.exit(1);
     }
 }

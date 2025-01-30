@@ -1,4 +1,5 @@
 import winston from "winston";
+import { FunctionStatus } from "../enums";
 
 
 // Winston logger configuration
@@ -14,3 +15,17 @@ export const logger = winston.createLogger({
     ),
     transports: [new winston.transports.Console()],
 });
+
+
+/**
+ * logs Function Information
+*/
+export const logFunctionInfo = (functionName: string, functionStatus: FunctionStatus, details?: string): void => {
+    const logData = `Function: ${functionName}, Status: ${functionStatus} ${details ? ', Details: ' + details : ''}`;
+    if (functionStatus == FunctionStatus.fail) {
+        logger.error(logData)
+    }
+    else {
+        logger.info(logData);
+    }
+}

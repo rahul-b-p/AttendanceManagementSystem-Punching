@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { UserSortKeys } from "../enums";
-import { IOffice, IUser } from "../interfaces";
+import { IAttendance, IOffice, IUser } from "../interfaces";
 import { PageInfo } from "./page.type";
 
 export type UserAuthBody = {
@@ -13,6 +13,7 @@ export type UserInsertArgs = {
     email: string;
     phone: string;
     role: string;
+    officeId?: string;
 };
 
 export type IUserData = Omit<IUser, 'password' | 'refreshToken' | 'verified' | '__v'>;
@@ -47,13 +48,17 @@ export type UserFilterQuery = {
     sortKey?: UserSortKeys;
 };
 
-export type userQuery = Partial<UserInsertArgs>;
+export type userQuery = {
+    officeId?: Types.ObjectId;
+    role?: string;
+};
 
 
 export type UserToShow = UserInsertArgs & {
     _id: Types.ObjectId;
     createdAt: string;
     office?: IOffice;
+    attendnaces?: IAttendance[];
 }
 
 export type UserSearchQuery = {

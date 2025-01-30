@@ -1,60 +1,61 @@
 import { z } from "zod";
-import {  UserSortKeys } from "../enums";
+import { UserSortKeys } from "../enums";
 import { phoneSchema } from "./phone.schema";
 import { passwordSchema } from "./password.schema";
 import { otpSchema } from "./otp.schema";
 import { pageNumberRegex } from "../utils";
+import { errorMessage } from "../constants";
 
 
 
 export const createUserSchema = z
     .object({
         username: z
-            .string({ message: "Username is required." })
-            .min(5, "Username must be at least 5 characters long"),
+            .string({ message: errorMessage.USERNAME_REQUIRED })
+            .min(5, errorMessage.USERNAME_MIN_LENGTH),
         email: z
-            .string({ message: "Email is required." })
-            .email({ message: "Invalid Email Format" }),
+            .string({ message: errorMessage.EMAIL_REQUIRED })
+            .email({ message: errorMessage.INVALID_EMAIL_FORMAT }),
         phone: phoneSchema,
         role: z
             .string()
     })
-    .strict({ message: "Role is required." });
+    .strict({ message: errorMessage.ROLE_REQUIRED });
 
 
 
 export const userAuthSchema = z
     .object({
         email: z
-            .string({ message: "Email is required." })
-            .email({ message: "Invalid Email Format" }),
+            .string({ message: errorMessage.EMAIL_REQUIRED })
+            .email({ message: errorMessage.INVALID_EMAIL_FORMAT }),
         password: passwordSchema,
     })
-    .strict('Invalid Request Body');
+    .strict();
 
 
 
 export const userOtpValidationSchema = z.object({
-    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" }),
+    email: z.string({ message: errorMessage.EMAIL_REQUIRED }).email({ message: errorMessage.INVALID_EMAIL_FORMAT }),
     otp: otpSchema,
     password: passwordSchema,
     confirmPassword: passwordSchema,
 }).strict().refine(
     (data) => data.password === data.confirmPassword,
     {
-        message: "Passwords do not match",
+        message: errorMessage.PASSWORDS_MUST_MATCH,
         path: ["confirmPassword"],
     }
 );
 export const forgotPasswordSchema = z.object({
-    email: z.string({ message: "Email is required." }).email({ message: "Invalid Email Format" })
+    email: z.string({ message: errorMessage.EMAIL_REQUIRED }).email({ message: errorMessage.INVALID_EMAIL_FORMAT })
 });
 
 export const resetPasswordSchema = z
     .object({
         email: z
-            .string({ message: "Email is required." })
-            .email({ message: "Invalid Email Format" }),
+            .string({ message: errorMessage.EMAIL_REQUIRED })
+            .email({ message: errorMessage.INVALID_EMAIL_FORMAT }),
         otp: otpSchema,
         password: passwordSchema
     })
@@ -65,12 +66,12 @@ export const resetPasswordSchema = z
 export const updateUserSchema = z
     .object({
         username: z
-            .string({ message: "Username is required." })
-            .min(5, "Username must be at least 5 characters long")
+            .string()
+            .min(5, errorMessage.USERNAME_MIN_LENGTH)
             .optional(),
         email: z
-            .string({ message: "Email is required." })
-            .email({ message: "Invalid Email Format" })
+            .string({ message: errorMessage.EMAIL_REQUIRED })
+            .email({ message: errorMessage.INVALID_EMAIL_FORMAT })
             .optional(),
         phone: phoneSchema
             .optional(),
@@ -81,17 +82,17 @@ export const updateUserSchema = z
     .strict()
     .refine((data) =>
         data.email || data.phone || data.role || data.username,
-        { message: "Update body should contain any of update feilds, username, email, phone, role" }
+        { message: errorMessage.AT_LEAST_ONE_FIELD_REQUIRED_FOR_UPDATE }
     );
 
 
 
 export const userFilterQuerySchema = z
     .object({
-        pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
-        pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provide in digits"),
+        pageNo: z.string({ message: errorMessage.PAGE_NUMBER_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
+        pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS),
         role: z.string().optional(),
-        sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional()
+        sortKey: z.nativeEnum(UserSortKeys, { message: errorMessage.INVALID_SORT_KEY }).optional()
     })
     .strict();
 
@@ -99,9 +100,9 @@ export const userFilterQuerySchema = z
 
 export const userSearchFilterQuerySchema = z
     .object({
-        pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
-        pageLimit: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provide in digits"),
+        pageNo: z.string({ message: errorMessage.PAGE_NUMBER_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
+        pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS),
         role: z.string().optional(),
-        sortKey: z.nativeEnum(UserSortKeys, { message: "sort keys should be 'createAt' or 'username'" }).optional(),
+        sortKey: z.nativeEnum(UserSortKeys, { message: errorMessage.INVALID_SORT_KEY }).optional(),
         username: z.string().optional()
     })

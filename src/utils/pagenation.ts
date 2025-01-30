@@ -1,4 +1,6 @@
+import { FunctionStatus } from "../enums";
 import { PageInfo, PageNationFeilds } from "../types";
+import { logFunctionInfo } from "./logger";
 
 
 /**
@@ -6,6 +8,9 @@ import { PageInfo, PageNationFeilds } from "../types";
  * based on the provided page information and current page URL.
 */
 export const pagenate = (pageInfo: PageInfo, url: string): PageNationFeilds => {
+    const functionName = 'pagenate';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     const { page, totalPages } = pageInfo;
 
     const Pageurl = (pageNo: number) => {
@@ -28,6 +33,7 @@ export const pagenate = (pageInfo: PageInfo, url: string): PageNationFeilds => {
         pageNationFeilds.nextPage = Pageurl(page + 1);
     }
 
+    logFunctionInfo(functionName, FunctionStatus.success);
     return pageNationFeilds;
 }
 

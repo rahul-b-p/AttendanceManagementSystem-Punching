@@ -13,7 +13,6 @@ const attendanceSchema = new Schema<IAttendance>({
     punchIn: {
         type: String,
         required: true,
-        unique: true,
         default: () => getTimeStamp()
     },
     punchOut: {
@@ -50,6 +49,7 @@ const attendanceSchema = new Schema<IAttendance>({
     }
 });
 
+attendanceSchema.index({ userId: 1, punchIn: 1 }, { unique: true });
 
 const Attendance = mongoose.model<IAttendance>('attendances', attendanceSchema);
 

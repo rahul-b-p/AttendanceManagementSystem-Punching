@@ -1,5 +1,8 @@
+import { errorMessage } from "../constants";
+import { FunctionStatus } from "../enums";
 import { BadRequestError } from "../errors";
 import { AttendanceQuery } from "../types";
+import { logFunctionInfo } from "../utils";
 
 
 /**
@@ -9,15 +12,17 @@ import { AttendanceQuery } from "../types";
  * @throws {BadRequestError} - If the validation rules are violated.
  */
 export const validateAttendanceQuery = (query: AttendanceQuery): void => {
+    logFunctionInfo("validateAttendanceQuery", FunctionStatus.start);
+
     const { date, startDate, endDate, days } = query;
 
     if (date && (startDate || endDate || days)) {
         throw new BadRequestError(
-            "You cannot provide startDate, endDate, or days along with date."
+            errorMessage.CONFLICTING_ATTENDANCE_FILTER_PARAMETERS
         );
     }
 
     if (startDate && !endDate) {
-        throw new BadRequestError("endDate must be provided if startDate is provided.");
+        throw new BadRequestError(errorMessage.INSUFFICIENT_FEILDS_ON_DATE_RANGE);
     }
 };

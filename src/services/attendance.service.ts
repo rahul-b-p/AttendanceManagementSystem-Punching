@@ -1,17 +1,21 @@
 import { Types } from "mongoose";
-import { AttendanceSortArgs } from "../enums";
+import { AttendanceSortArgs, FunctionStatus } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
 import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceSummary, AttendanceSummaryQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
-import { calculatePageSkip, getDayRange, getTimeStamp, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
+import { calculatePageSkip, getDayRange, getTimeStamp, logFunctionInfo, logger, prepareAddFeilds, prepareMatchFilter } from "../utils"
 import { validateAttendanceQuery } from "../validators";
 import moment from "moment";
+import { errorMessage } from "../constants";
 
 /**
  * Checks if a punch-in record exists for the specified user on the given date.
  * If no date is provided, it checks for the current date.
 */
 export const checkPunchInForDay = async (userId: string, date?: string): Promise<IAttendance | null> => {
+    const functionName = 'checkPunchInForDay';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         let punchIn: any;
         if (date) {
@@ -31,9 +35,10 @@ export const checkPunchInForDay = async (userId: string, date?: string): Promise
             punchIn
         });
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return attendanceExistOnCurrentDay;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -43,14 +48,18 @@ export const checkPunchInForDay = async (userId: string, date?: string): Promise
  * Inserts a new attendnace data
 */
 export const insertAttendance = async (attendanceData: AttendancePunchinArgs): Promise<IAttendance> => {
+    const functionName = 'insertAttendance';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const newAttendance = new Attendance(attendanceData);
         await newAttendance.save();
 
         delete (newAttendance as any).__v;
+        logFunctionInfo(functionName, FunctionStatus.success);
         return newAttendance;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -60,14 +69,18 @@ export const insertAttendance = async (attendanceData: AttendancePunchinArgs): P
  * update an attendnace data on database using its id, if no attendnace dta found with the id, then it returns null 
 */
 export const updateAttendanceById = async (_id: string, upddateData: UpdateAttendanceArgs): Promise<IAttendance | null> => {
+    const functionName = 'updateAttendanceById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const updatedAttendance = await Attendance.findByIdAndUpdate(_id, upddateData, { new: true });
 
         delete (updatedAttendance as any).__v;
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return updatedAttendance
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -77,10 +90,16 @@ export const updateAttendanceById = async (_id: string, upddateData: UpdateAtten
  * find the attendance doccument with given id, otherwise returns null
 */
 export const findAttendanceById = async (_id: string): Promise<IAttendance | null> => {
+    const functionName = 'findAttendanceById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
-        return await Attendance.findById(_id).lean();
+        const attennaceData = await Attendance.findById(_id).lean();
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        return attennaceData;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -92,17 +111,20 @@ export const findAttendanceById = async (_id: string): Promise<IAttendance | nul
  * and handles errors with appropriate logging.
  */
 export const comparePunchInPunchOut = (punchIn?: string, punchOut?: string, existingAttendance?: IAttendance): boolean => {
+    const functionName = 'comparePunchInPunchOut';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         if (!punchIn && !punchOut) {
-            throw new Error('Either punchIn or punchOut argument is required');
+            throw new Error(errorMessage.PUNCH_IN_OR_OUT_REQUIRED);
         }
 
         if (punchIn && !moment(punchIn, moment.ISO_8601, true).isValid()) {
-            throw new Error('Invalid punchIn time. Must be an ISO string.');
+            throw new Error(errorMessage.INVALID_TIME_FORMAT);
         }
 
         if (punchOut && !moment(punchOut, moment.ISO_8601, true).isValid()) {
-            throw new Error('Invalid punchOut time. Must be an ISO string.');
+            throw new Error(errorMessage.INVALID_TIME_FORMAT);
         }
 
         const punchInMoment = punchIn ? moment(punchIn) : null;
@@ -128,9 +150,9 @@ export const comparePunchInPunchOut = (punchIn?: string, punchOut?: string, exis
                 : true;
         }
 
-        throw new Error('No data provided for comparison. Invalid usage of punch-in and punch-out time comparison.');
-    } catch (error) {
-        logger.error(error);
+        throw new Error(errorMessage.INVALID_PUNCH_IN_OUT_COMPARISON);
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw error;
     }
 };
@@ -141,12 +163,16 @@ export const comparePunchInPunchOut = (punchIn?: string, punchOut?: string, exis
  * Deletes an existing attendnace using id, if no existing attendnace id, then returns null
  */
 export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
+    const functionName = 'deleteAttendnaceById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const deletedUser = await Attendance.findByIdAndDelete(_id);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return deletedUser !== null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -156,8 +182,9 @@ export const deleteAttendnaceById = async (_id: string): Promise<boolean> => {
  * Aggregates attendance data to count the number of records that match the given filter criteria.
  * This function applies the specified additional fields and filter conditions to an aggregation query 
  */
-
 export const getAttendnaceFilterCount = async (addFeilds: Record<string, any>, matchFilter: Record<string, any>): Promise<number> => {
+    logFunctionInfo("getAttendnaceFilterCount", FunctionStatus.start);
+
     try {
         const totalFilter = await Attendance.aggregate([
             {
@@ -189,6 +216,8 @@ export const aggregateAttendanceData = async (
     limit: number,
     sort: Record<string, any>
 ): Promise<AttendanceToShow[]> => {
+    logFunctionInfo("aggregateAttendanceData", FunctionStatus.start);
+
     try {
         return await Attendance.aggregate([
             { $addFields: addFeilds, },
@@ -266,8 +295,10 @@ export const aggregateAttendanceData = async (
  * Fetches attendance data from the database with pagination, filtering, and sorting.
  * Also fetching the page info(total pages, pagesize, total data, current page).
  */
-
 export const fetchAttendanceData = async (page: number, limit: number, query: AttendanceQuery, sort: AttendanceSortArgs): Promise<AttendanceFetchResult | null> => {
+    const functionName = 'fetchAttendanceData';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         validateAttendanceQuery(query);
 
@@ -290,9 +321,10 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
             data: attendances
         }
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return attendances.length > 0 ? fetchResult : null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -303,6 +335,9 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
  * needs a userId and date range for calculations
 */
 export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Promise<AttendanceSummary | null> => {
+    const functionName = "findAttendanceSummary";
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     const { userId, endDate, startDate } = query
     try {
         const matchFilter = {
@@ -348,9 +383,10 @@ export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Prom
             },
         ]);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return attendanceSummary.length > 0 ? attendanceSummary[0] : null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }

@@ -2,13 +2,18 @@ import { getDistance } from "geolib";
 import { MIN_THRESHOLD } from "../config";
 import { geocodeAddress } from "../services";
 import { Adress, Location, LocationWithRadius } from "../types";
-import { logger } from "../utils";
+import { logFunctionInfo } from "../utils";
+import { FunctionStatus } from "../enums";
+import { errorMessage } from "../constants";
 
 
 /**
  *  Validates an address by geocoding it and comparing the resulting location coordinates with the provided location.
  */
 export const validateAdressWithLocation = async (adress: Adress, providedLocation: Location): Promise<boolean> => {
+    const functionName = 'validateAdressWithLocation';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const adressString = `${adress.city},${adress.state},${adress.zip_code}`;
         const geoEncodedLocation = await geocodeAddress(adressString);
@@ -19,6 +24,7 @@ export const validateAdressWithLocation = async (adress: Adress, providedLocatio
 
         const threshold = Number(MIN_THRESHOLD);
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         if (Math.abs(geoEncodedLocation.latitude - providedLocation.latitude) < threshold && Math.abs(geoEncodedLocation.longitude - providedLocation.longitude) < threshold) {
             return true;
         } else {
@@ -26,7 +32,7 @@ export const validateAdressWithLocation = async (adress: Adress, providedLocatio
             return false;
         }
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -42,16 +48,20 @@ export const validateAdressWithLocation = async (adress: Adress, providedLocatio
  * @returns {boolean} - Returns `true` if the person's location is within the institution's radius, `false` otherwise.
  */
 export const validateLocationWithinInstitutionRadius = (personLocation: Location, institutionLocation: Location, institutionRadius: number): boolean => {
+    const functionName = 'validateLocationWithinInstitutionRadius';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         if (!personLocation || !institutionLocation || institutionRadius <= 0) {
-            throw new Error('Invalid input parameters.');
+            throw new Error(errorMessage.INVALID_INPUT_PARAMETERS);
         }
 
         const distance = getDistance(personLocation, institutionLocation);
+        logFunctionInfo(functionName, FunctionStatus.success);
         return distance <= institutionRadius;
     } catch (error: any) {
-        logger.error(error);
-        throw new Error(`Error validating location: ${error.message}`);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        throw new Error(error.message);
     }
 }
 
@@ -66,14 +76,18 @@ export const validateLocationWithinInstitutionRadius = (personLocation: Location
  *                                            or `null` if no institution matches the criteria.
  */
 export const validateLocationWithinMultipleInstitutionsRadius = (personLocation: Location, allInstitutionLocationsWithRadius: LocationWithRadius[]): { officeId: string } | null => {
+    const functionName = 'validateLocationWithinMultipleInstitutionsRadius';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const matchingInstitution = allInstitutionLocationsWithRadius.find(({ _id, radius, ...institutionLocation }) =>
             getDistance(personLocation, institutionLocation) <= radius
         );
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return matchingInstitution ? { officeId: matchingInstitution._id.toString() } : null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 };

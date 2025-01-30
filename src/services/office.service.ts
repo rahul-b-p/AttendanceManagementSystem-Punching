@@ -1,10 +1,11 @@
 import { Types } from "mongoose";
-import { FetchType, OfficeSortArgs, Roles } from "../enums";
+import { FetchType, FunctionStatus, OfficeSortArgs, Roles } from "../enums";
 import { IOffice } from "../interfaces";
 import { Office } from "../models"
 import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData, LocationWithRadius } from "../types";
-import { logger } from "../utils";
+import { logFunctionInfo } from "../utils";
 import { updateUserById } from "./user.service";
+import { errorMessage } from "../constants";
 
 
 
@@ -12,11 +13,16 @@ import { updateUserById } from "./user.service";
  * Checks wether the location is unique on database
  */
 export const validateLocationUniqueness = async (location: Location): Promise<Boolean> => {
+    const functionName = 'validateLocationUniqueness';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const officeExistsOnLocation = await Office.exists({ location, isDeleted: false });
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return officeExistsOnLocation === null
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -26,15 +32,19 @@ export const validateLocationUniqueness = async (location: Location): Promise<Bo
  * Insert a new office with required feilds
  */
 export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffice> => {
+    const functionName = 'insertOffice';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const newOffice = new Office(officeData);
 
         await newOffice.save()
 
         delete (newOffice as any).__v;
+        logFunctionInfo(functionName, FunctionStatus.success);
         return newOffice
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -44,6 +54,9 @@ export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffic
  * Fetches office data using aggregation with support for filtering, sorting, and pagination.
  */
 export const fetchOffices = async (fetchType: FetchType, page: number, limit: number, query: officeQuery, sort: OfficeSortArgs): Promise<OfficeFetchResult | null> => {
+    const functionName = 'fetchOffices';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const skip = (page - 1) * limit;
 
@@ -131,9 +144,10 @@ export const fetchOffices = async (fetchType: FetchType, page: number, limit: nu
             data: offices
         };
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return offices.length > 0 ? fetchResult : null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -143,10 +157,16 @@ export const fetchOffices = async (fetchType: FetchType, page: number, limit: nu
  *  Finds an existing office by its unique ID. if not found, then its returns null 
  */
 export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
+    const functionName = 'findOfficeById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
-        return await Office.findById(_id);
+        const office = await Office.findById(_id);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        return office;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -156,14 +176,18 @@ export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
  *  Updates an existing office by its unique ID. if not found existing data, then its returns null 
  */
 export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOfficeArgs): Promise<IOffice | null> => {
+    const functionName = 'updateOfficeById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const updatedOffice = await Office.findByIdAndUpdate(_id, updateOfficeData, { new: true }).lean();
 
         delete (updatedOffice as any).__v;
 
+        logFunctionInfo(functionName, FunctionStatus.success);
         return updatedOffice;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -174,6 +198,9 @@ export const updateOfficeById = async (_id: string, updateOfficeData: UpdateOffi
  *  @returns {boolean} - Returns `true` if the office exists and the deletion flag is successfully set; `false` if the office with the given ID is not found.
  */
 export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
+    const functionName = 'softDeleteOfficeById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const existingOffice = await findOfficeById(_id);
         if (!existingOffice || existingOffice.isDeleted) return false;
@@ -184,10 +211,12 @@ export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
         }));
 
         const deletedOffice = await Office.findByIdAndUpdate(_id, { isDeleted: true });
-        if (!deletedOffice) throw Error("existingOffice Can't find while deletion");
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        if (!deletedOffice) throw Error(errorMessage.OFFICE_NOT_FOUND);
         else return true;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -197,6 +226,9 @@ export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
  *  Updates an existing office by its unique ID to assign a user to either the `managers` or `employees` array field based on the provided role.
  */
 export const setUserToOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
+    const functionName = 'setUserToOfficeById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         if (!userId) {
             throw new Error('UserId must be provided.');
@@ -209,7 +241,7 @@ export const setUserToOfficeById = async (_id: string, userId: string, role: Rol
         else if (role == Roles.employee) {
             updateObject.employees = userId;
         }
-        else throw new Error(`Can only assign manger or employee to an office model`)
+        else throw new Error(errorMessage.INVALID_OFFICE_USER_ROLE)
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {
             $addToSet: updateObject,
@@ -218,9 +250,11 @@ export const setUserToOfficeById = async (_id: string, userId: string, role: Rol
         await updateUserById(userId, { $set: { officeId: new Types.ObjectId(_id) } });
 
         delete (updatedOffice as any).__v;
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return updatedOffice;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -230,9 +264,11 @@ export const setUserToOfficeById = async (_id: string, userId: string, role: Rol
  *  Updates an existing office by its unique ID to remove a user from either the `managers` or `employees` array field based on the provided role.
  */
 export const unsetUserFromOfficeById = async (_id: string, userId: string, role: Roles): Promise<IOffice | null> => {
-    try {
-        if (!userId) throw new Error('UserId must be provided.');
+    const functionName = 'unsetUserFromOfficeById';
+    logFunctionInfo(functionName, FunctionStatus.start);
 
+    try {
+        
         const updateObject: any = {};
         if (role == Roles.manager) {
             updateObject.managers = userId;
@@ -240,7 +276,7 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
         else if (role == Roles.employee) {
             updateObject.employees = userId;
         }
-        else throw new Error(`Can only assign manger or employee to an office model`)
+        else throw new Error(errorMessage.INVALID_OFFICE_USER_ROLE)
 
 
         const updatedOffice = await Office.findByIdAndUpdate(_id, {
@@ -250,9 +286,10 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
         await updateUserById(userId, { $unset: { officeId: 1 } });
 
         delete (updatedOffice as any).__v;
+        logFunctionInfo(functionName, FunctionStatus.success);
         return updatedOffice;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -263,14 +300,19 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
  *  @returns {boolean} - Returns `true` if the office exists and deleted; `false` if the office with the given ID is not found.
  */
 export const deleteOfficeById = async (_id: string): Promise<boolean> => {
+    const functionName = 'deleteOfficeById';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const trashExistsOnId = await Office.exists({ _id, isDeleted: true });
         if (!trashExistsOnId) return false;
 
         const deletedOffice = await Office.findByIdAndDelete(_id);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return deletedOffice !== null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }
@@ -281,14 +323,19 @@ export const deleteOfficeById = async (_id: string): Promise<boolean> => {
  * The manager must be listed in the `managers` array and the employee in the `employees` array of the same office.
  */
 export const isManagerAuthorizedForEmployee = async (employeeId: string, managerId: string): Promise<boolean> => {
+    const functionName = 'isManagerAuthorizedForEmployee';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const officeExists = await Office.exists({
             managers: { $in: [managerId] },
             employees: { $in: [employeeId] }
         });
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         return officeExists !== null;
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message)
     }
 }
@@ -298,6 +345,9 @@ export const isManagerAuthorizedForEmployee = async (employeeId: string, manager
  * Fetches locations of all offices as array
  */
 export const getAllOfficeLocationsAndRadius = async (): Promise<LocationWithRadius[] | null> => {
+    const functionName = 'getAllOfficeLocationsAndRadius';
+    logFunctionInfo(functionName, FunctionStatus.start);
+
     try {
         const officeLocations = await Office.aggregate([
             {
@@ -312,10 +362,12 @@ export const getAllOfficeLocationsAndRadius = async (): Promise<LocationWithRadi
                 },
             }
         ]);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
         if (officeLocations.length <= 0) return null;
         else return officeLocations as LocationWithRadius[]
     } catch (error: any) {
-        logger.error(error);
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { HHMMSchema, YYYYMMDDSchema } from "./date.schema";
 import { objectIdRegex, pageNumberRegex } from "../utils";
 import { AttendanceSortKeys, Days } from "../enums";
+import { errorMessage } from "../constants";
 
 
 
@@ -10,32 +11,32 @@ const commaSeparatedDaysSchema = z.string().refine((val) => {
     const validDays = Object.values(Days);
     return daysArray.every(day => validDays.includes(day as Days));
 }, {
-    message: "Invalid days provided. Ensure all days are valid Days enum values and comma-separated."
+    message: errorMessage.INVALID_DAYS_PROVIDED
 });
 
 
 export const attendnacePunchSchema = z.object({
-    latitude: z.number({ message: "latitude required" }),
-    longitude: z.number({ message: "longitude required" })
+    latitude: z.number({ message: errorMessage.LATITUDE_REQUIRED }),
+    longitude: z.number({ message: errorMessage.LONGITUDE_REQUIRED })
 }).strict();
 
 
 export const createAttendanceSchema = z.object({
-    latitude: z.number({ message: "latitude required" }),
-    longitude: z.number({ message: "longitude required" }),
+    latitude: z.number({ message: errorMessage.LATITUDE_REQUIRED }),
+    longitude: z.number({ message: errorMessage.LONGITUDE_REQUIRED }),
     date: YYYYMMDDSchema,
     punchInTime: HHMMSchema,
     punchOutTime: HHMMSchema
 }).strict()
     .refine(data =>
         data.punchInTime < data.punchOutTime,
-        { message: "punch in time should before the punch out time" }
+        { message: errorMessage.PUNCH_IN_BEFORE_PUNCH_OUT }
     );
 
 
 export const updateAttendanceSchema = z.object({
-    latitude: z.number({ message: "latitude required" }).optional(),
-    longitude: z.number({ message: "longitude required" }).optional(),
+    latitude: z.number({ message: errorMessage.LATITUDE_REQUIRED }).optional(),
+    longitude: z.number({ message: errorMessage.LONGITUDE_REQUIRED }).optional(),
     date: YYYYMMDDSchema.optional(),
     punchInTime: HHMMSchema.optional(),
     punchOutTime: HHMMSchema.optional()
@@ -50,32 +51,32 @@ export const updateAttendanceSchema = z.object({
 
         return atLeastOneFieldProvided && punchTimesRequiredWithDate;
     }, {
-        message: "At least one field is required. If date is provided, both punchInTime and punchOutTime must be provided.",
+        message: errorMessage.AT_LEAST_REQUIRED_ARTTENDACE_CREATION,
         path: ['date']
     });
 
 
 export const attendnaceFilterQuerySchema = z.object({
-    pageNo: z.string({ message: "Page number is required" }).regex(pageNumberRegex, "Page number should be provided in digits"),
-    pageLimit: z.string({ message: "Page limit is required" }).regex(pageNumberRegex, "Page limit should be provided in digits"),
+    pageNo: z.string({ message: errorMessage.PAGE_NUMBER_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
+    pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
     date: YYYYMMDDSchema.optional(),
-    userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }).optional(),
+    userId: z.string().regex(objectIdRegex, { message: errorMessage.INVALID_ID }).optional(),
     startDate: YYYYMMDDSchema.optional(),
     endDate: YYYYMMDDSchema.optional(),
     days: commaSeparatedDaysSchema.optional(),
-    officeId: z.string().regex(objectIdRegex, { message: "Invalid officeId" }).optional(),
-    sortKey: z.nativeEnum(AttendanceSortKeys, { message: "Invalid sortKey" }).optional()
+    officeId: z.string().regex(objectIdRegex, { message: errorMessage.INVALID_ID }).optional(),
+    sortKey: z.nativeEnum(AttendanceSortKeys, { message: errorMessage.INVALID_SORT_KEY }).optional()
 }).strict()
     .refine(
         (data) =>
             !(data.date && (data.startDate || data.endDate || data.days)),
         {
-            message: "You cannot provide startDate, endDate, or days along with date",
+            message: errorMessage.CONFLICTING_ATTENDANCE_FILTER_PARAMETERS,
             path: ["date"],
         }
     )
     .refine((data) => !data.startDate || data.endDate, {
-        message: "endDate must be provided if startDate is provided",
+        message: errorMessage.INSUFFICIENT_FEILDS_ON_DATE_RANGE,
         path: ["startDate"],
     }).refine((data) => {
         if (data.startDate && data.endDate) {
@@ -85,13 +86,23 @@ export const attendnaceFilterQuerySchema = z.object({
         }
         return true;
     }, {
-        message: "startDate must be less than or equal to endDate",
+        message: errorMessage.INVALID_DATE_RANGE,
         path: ["startDate"],
     });
 
 
 export const attendnaceSummaryQuerySchema = z.object({
-    userId: z.string().regex(objectIdRegex, { message: "Invalid userId" }),
+    userId: z.string().regex(objectIdRegex, { message: errorMessage.INVALID_ID }),
     startDate: YYYYMMDDSchema,
     endDate: YYYYMMDDSchema
-}).strict();
+}).strict().refine((data) => {
+    if (data.startDate && data.endDate) {
+        const startDate = new Date(data.startDate);
+        const endDate = new Date(data.endDate);
+        return startDate <= endDate;
+    }
+    return true;
+}, {
+    message: errorMessage.INVALID_DATE_RANGE,
+    path: ["startDate"],
+});
