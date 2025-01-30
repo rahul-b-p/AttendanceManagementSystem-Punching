@@ -25,6 +25,7 @@ export const {
     USER_UPDATED = USER + DATA_UPDATED,
     USER_DELETED = USER + DATA_DELETED,
     PROFILE_UPDATED = 'Your profile has been updated',
+    PROFILE_FETCHED='Your Profile Data has been Fetched Successfully',
 
     //office handling
     OFFICE_CREATED = NEW_ + OFFICE + DATA_CREATED,
