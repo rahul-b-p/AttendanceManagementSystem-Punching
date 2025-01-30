@@ -4,6 +4,7 @@ import { ALREADY_EXISTS, DATA_NOT_FOUND, NOT_FOUND } from "./common.constants";
 
 
 export const {
+    // Auth
     USER_NOT_FOUND = USER + NOT_FOUND,
     EMAIL_VALIDATION_FAILED = "Email validation failed.",
     INVALID_PASSWORD = "The provided password is incorrect.",
@@ -12,6 +13,8 @@ export const {
     SERVER_ISSUE = "An error occurred at the server. Please try again later.",
     ACCESSTOKEN_MISSING = "Access token is missing from the header after authentication middleware.",
     INVALID_OTP = "Email verification failed. Invalid OTP.",
+
+    // Custom Roles Handling
     CUSTOM_ROLE_ALREADY_EXISTS = "The requested custom role already exists.",
     ROLE_DATA_NOT_FOUND = ROLE + DATA_NOT_FOUND,
     INVALID_ID = "Invalid unique ID provided.",
@@ -19,6 +22,8 @@ export const {
     ROLE_NOT_FOUND = "The requested role was not found.",
     INVALID_ROLE = "Invalid role provided.",
     INSUFFICIENT_PRIVILEGES = "Forbidden: Insufficient role privileges.",
+
+    // User Handling
     NO_OFFICE_ASSIGNMENT = "You are not assigned to any office and cannot take any action.",
     INVALID_EMAIL_ID = "Invalid email ID provided.",
     EMAIL_NOT_SENT = "Error occurred while sending the email.",
@@ -26,6 +31,8 @@ export const {
     USER_DATA_NOT_FOUND = USER + DATA_NOT_FOUND,
     ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE = "You are only authorized to access employees of the assigned office.",
     EMAIL_ALREADY_IN_USE = "The email address you entered is already associated with your account.",
+
+    // Office Handling
     LOCATION_NOT_MATCHED = "The location does not match the provided address.",
     OFFICE_ALREADY_EXISTS_AT_LOCATION = "An office already exists at the specified location.",
     OFFICE_DATA_NOT_FOUND = OFFICE + DATA_NOT_FOUND,
@@ -38,6 +45,8 @@ export const {
     EMPLOYEE_NOT_FOUND_IN_OFFICE = USER_NOT_FOUND + ', As Employee in the given Office',
     TRASH_EMPTY = "Your trash is empty.",
     OFFICE_NOT_FOUND_IN_TRASH = "The requested office was not found in the trash.",
+
+    // Attendance Handling
     NO_OFFICE_ASSIGNMENT_PUNCH = "You cannot punch in or punch out without being assigned to an office.",
     DELETED_OFFICE_ID_STILL_ASSOCIATED = "Deleted office ID is still associated with the user. System failure!",
     INVALID_ATTENDANCE_LOCATION = "Request made from an invalid location. You are not permitted to mark attendance from this location.",
@@ -57,6 +66,8 @@ export const {
     CANNOT_FILTER_FUTURE_ATTENDANCE = "Future attendance data cannot be filtered.",
     ATTENDANCE_DATA_NOT_FOUND = ATTENDANCE + DATA_NOT_FOUND,
     NO_ATTENDANCE_HISTORY_IN_DATE_RANGE = "The user has no attendance history between the given date range.",
+
+    // Validation
     VALIDATION_FAILED = "Validation failed.",
     INVALID_REQUEST_BODY = "Invalid request body.",
     INVALID_REQUEST_QUERY = "Invalid request query.",
@@ -107,7 +118,7 @@ export const {
     PASSWORDS_MUST_MATCH = "Passwords do not match with the confirm password field.",
     INVALID_TIMEZONE = "Invalid timezone format.",
     INVALID_DATE_ISO = "Invalid date provided.",
-    INVALID_DATE_AS_DATE= "Invalid date format of stringified date object.",
+    INVALID_DATE_AS_DATE = "Invalid date format of stringified date object.",
     NO_TIMEZONE_FOUND = "No timezone found for the given coordinates.",
     INVALID_INPUT_PARAMETERS = "Invalid input parameters."
 } = {} as const;
