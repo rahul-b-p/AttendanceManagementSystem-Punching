@@ -49,11 +49,9 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
         const updateRefreshToken = { $set: { refreshToken: RefreshToken } };
         await updateUserById(existingUser._id.toString(), updateRefreshToken);
 
-        const UserData = await getUserData(existingUser._id.toString());
-
         logFunctionInfo(functionName, FunctionStatus.success);
         res.statusMessage = "Login Successful";
-        res.status(200).json({ ...await sendCustomResponse(responseMessage.SUCCESS_LOGIN, UserData), AccessToken, RefreshToken });
+        res.status(200).json({ ...await sendCustomResponse(responseMessage.SUCCESS_LOGIN), AccessToken, RefreshToken });
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error)

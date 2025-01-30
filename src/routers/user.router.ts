@@ -25,6 +25,3 @@ router.get('/filter', roleAuth(Roles.admin, Roles.manager), validateReqQuery(use
 
 // API to read complete details of a specific user -- role based access
 router.get('/:id', roleAuth(Roles.admin, Roles.manager), userController.readUserDataByAdmin);
-
-// API for a user to update their own account details. 
-router.put('/', validateReqBody(updateUserSchema), userController.updateProfile);
