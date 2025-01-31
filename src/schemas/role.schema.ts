@@ -28,7 +28,8 @@ export const createCustomRoleSchema = z.object({
 
 export const roleFilterSchema = z.object({
     pageNo: z.string({ message: errorMessage.PAGE_NUMBER_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_NUMBER_MUST_BE_DIGITS),
-    pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS)
+    pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS),
+    role: z.string().optional()
 }).strict();
 
 
@@ -47,4 +48,3 @@ export const updateCustomRoleSchema = z.object({
         message: errorMessage.REQUIRED_FOR_ROLE_UPDATE
     });
 
-    

@@ -53,17 +53,25 @@ export const insertRole = async (newRoleInfo: InsertRoleArgs): Promise<ICustomRo
 /**
  *  Fetches all custom roles on database with pagenation.
 */
-export const fetchCustomRoles = async (page: number, limit: number): Promise<RolesFetchResult | null> => {
+export const fetchCustomRoles = async (page: number, limit: number, role?: string): Promise<RolesFetchResult | null> => {
     const functionName = 'fetchCustomRoles';
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
         const skip = (page - 1) * limit;
 
-        const totalFilter = await CustomRole.aggregate([{ $count: 'totalCount' }]);
+        let matchFilter: any = {};
+        if (role) {
+            matchFilter["role"] = { $regex: role, $options: "i" };
+        }
+        const totalFilter = await CustomRole.aggregate([
+            { $match: matchFilter },
+            { $count: 'totalCount' }
+        ]);
         const totalItems = totalFilter.length > 0 ? totalFilter[0].totalCount : 0;
 
         const roles: ICustomRole[] = await CustomRole.aggregate([
+            { $match: matchFilter },
             { $skip: skip },
             { $limit: limit },
             {

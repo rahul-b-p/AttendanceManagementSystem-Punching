@@ -44,8 +44,8 @@ export const readAllCustomRoles = async (req: customRequestWithPayload<{}, any, 
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        const { pageNo, pageLimit } = req.query;
-        const fetchResult = await fetchCustomRoles(Number(pageNo), Number(pageLimit));
+        const { pageNo, pageLimit, role } = req.query;
+        const fetchResult = await fetchCustomRoles(Number(pageNo), Number(pageLimit), role);
 
         const message = fetchResult ? responseMessage.ROLE_DATA_FETCHED : errorMessage.ROLE_DATA_NOT_FOUND;
         let PageNationFeilds;
