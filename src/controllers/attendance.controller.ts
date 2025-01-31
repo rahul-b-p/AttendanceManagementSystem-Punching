@@ -4,7 +4,7 @@ import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, g
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
 import { checkPunchInForDay, comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getAttendnaceDataById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
-import { DateStatus, FunctionStatus, Roles } from "../enums";
+import { DateStatus, FetchType, FunctionStatus, Roles } from "../enums";
 import { isValidObjectId, validateLocationWithinInstitutionRadius, validateLocationWithinMultipleInstitutionsRadius } from "../validators";
 import { getTimeZoneOfLocation } from "../utils/timezone";
 import { errorMessage, responseMessage } from "../constants";
@@ -356,10 +356,13 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
             const existingUser = await findUserById(userId);
             if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
-            if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
-
-            const existingOffice = findOfficeById(existingUser.officeId.toString());
-            if (!existingOffice) throw new InternalServerError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+            if (!existingUser.officeId) {
+                if (ownerRole !== Roles.admin) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
+            }
+            else {
+                const existingOffice = findOfficeById(existingUser.officeId.toString());
+                if (!existingOffice) throw new InternalServerError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+            }
         }
 
         if (officeId) {
@@ -421,6 +424,7 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
     try {
         const ownerId = req.payload?.id as string;
         const ownerData = await findUserById(ownerId) as IUser;
+        const ownerRole = await getDefaultRoleFromUserRole(ownerData.role);
 
         const { userId, startDate, endDate } = req.query;
 
@@ -430,17 +434,17 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
-        if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
+        if (ownerRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
 
-        const existingOffice = findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
+            const existingOffice = findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
 
-        if (ownerData.role !== Roles.admin) {
             const isPermitted = await isManagerAuthorizedForEmployee(userId, ownerId);
             if (!isPermitted) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
         }
 
-        const attendnceSummaryData = await findAttendanceSummary(req.query);
+        const attendnceSummaryData = await findAttendanceSummary(req.query, FetchType.active);
         const message = attendnceSummaryData ? responseMessage.ATTENDANCE_SUMMARY_FETCHED : errorMessage.NO_ATTENDANCE_HISTORY_IN_DATE_RANGE;
 
         logFunctionInfo(functionName, FunctionStatus.success);

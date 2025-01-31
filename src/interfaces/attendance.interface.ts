@@ -1,7 +1,7 @@
 import { Document, Types } from "mongoose";
 import { Location } from "../types";
 
-interface ILocation extends Document,Location{}
+interface ILocation extends Document, Location { }
 
 export interface IAttendance extends Document {
     _id: Types.ObjectId;
@@ -10,4 +10,5 @@ export interface IAttendance extends Document {
     punchOut?: string;
     location: ILocation;
     officeId: Types.ObjectId;
+    isDeleted: boolean;
 }

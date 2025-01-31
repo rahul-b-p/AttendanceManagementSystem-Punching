@@ -32,8 +32,12 @@ const attendanceSchema = new Schema<IAttendance>({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'offices',
         required: true
+    },
+    isDeleted: {
+        type: Boolean,
+        required: true,
+        default: false
     }
-
 }, {
     toJSON: {
         transform(doc, ret) {

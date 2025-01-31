@@ -10,7 +10,7 @@ import { Days } from "../enums";
  */
 export const prepareMatchFilter = (query: AttendanceQuery): Record<string, any> => {
     const { date, officeId, userId, days, endDate, startDate } = query;
-    const matchFilter: Record<string, any> = {};
+    const matchFilter: Record<string, any> = { isDeleted: false };
 
     // Date range filter
     if (date && (startDate || endDate)) throw new Error("single date and date range filter can't be applied together");
@@ -37,7 +37,7 @@ export const prepareMatchFilter = (query: AttendanceQuery): Record<string, any> 
     // Day filter
     if (days) {
         const daysArray = days.split(',') as Days[];
-        
+
         const dayNumbers = getDayNumber(daysArray);
         matchFilter["dayOfWeekName"] = { $in: dayNumbers };
     }
