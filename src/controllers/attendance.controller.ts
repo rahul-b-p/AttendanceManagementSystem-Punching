@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IUser } from "../interfaces";
 import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logFunctionInfo, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
-import { checkPunchInForDay, comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, updateAttendanceById } from "../services";
+import { checkPunchInForDay, comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getAttendnaceDataById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
 import { DateStatus, FunctionStatus, Roles } from "../enums";
 import { isValidObjectId, validateLocationWithinInstitutionRadius, validateLocationWithinMultipleInstitutionsRadius } from "../validators";
@@ -445,6 +445,42 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.status(200).json(await sendCustomResponse(message, attendnceSummaryData));
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        next(error);
+    }
+}
+
+
+/**
+ * Controller Function to read attendnace and its relational feilds using its unique id 
+ */
+export const readAttendnaceById = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = readAttendnaceById.name;
+    logFunctionInfo(functionName, FunctionStatus.start);
+
+    try {
+        const reqOwnerId = req.payload?.id;
+        if (!reqOwnerId) throw new InternalServerError(errorMessage.NO_USER_ID_IN_PAYLOAD);
+        const reqOwner = await findUserById(reqOwnerId);
+        if (!reqOwner) throw new AuthenticationError();
+        const ownerRole = await getDefaultRoleFromUserRole(reqOwner.role);
+
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
+
+        const attendnaceData = await getAttendnaceDataById(id);
+        if (!attendnaceData) throw new NotFoundError(errorMessage.ATTENDANCE_NOT_FOUND);
+
+        if (ownerRole != Roles.admin) {
+            const userId = attendnaceData.user._id.toString();
+            const isUserPermettedForManager = isManagerAuthorizedForEmployee(userId, reqOwnerId);
+            if (!isUserPermettedForManager) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
+        }
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        res.status(200).json(await sendCustomResponse(responseMessage.ATTENDANCE_DATA_FETCHED, attendnaceData));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);

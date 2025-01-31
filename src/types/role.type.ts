@@ -16,6 +16,7 @@ export type PermissionInputFormat = Omit<InsertRoleArgs, 'role'>;
 export type CustomRolesFilter = {
     pageNo: string;
     pageLimit: string;
+    role?: string;
 }
 
 export type RolesFetchResult = PageInfo & {

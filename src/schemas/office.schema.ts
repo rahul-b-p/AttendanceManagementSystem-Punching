@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { objectIdRegex, pageNumberRegex } from "../utils";
+import { pageNumberRegex } from "../utils";
 import { OfficeSortKeys } from "../enums";
 import { errorMessage } from "../constants";
 
@@ -23,7 +23,8 @@ export const officeFilterQuerySchema = z.object({
     pageLimit: z.string({ message: errorMessage.PAGE_LIMIT_REQUIRED }).regex(pageNumberRegex, errorMessage.PAGE_LIMIT_MUST_BE_DIGITS),
     city: z.string().optional(),
     state: z.string().optional(),
-    sortKey: z.nativeEnum(OfficeSortKeys, { message: errorMessage.INVALID_SORT_KEY }).optional()
+    sortKey: z.nativeEnum(OfficeSortKeys, { message: errorMessage.INVALID_SORT_KEY }).optional(),
+    officeName: z.string({ message: errorMessage.INVALID_SEARCH_KEY }).optional()
 }).strict();
 
 

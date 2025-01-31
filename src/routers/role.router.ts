@@ -19,3 +19,6 @@ router.put('/:id', validateReqBody(updateCustomRoleSchema), roleController.updat
 
 // API to delete an existing custom role -- only fo admin
 router.delete('/:id', roleController.deleteCustomRole);
+
+// API to read custom role using its unique id --only for admin
+router.get('/:id', roleController.readCustomRoleById)

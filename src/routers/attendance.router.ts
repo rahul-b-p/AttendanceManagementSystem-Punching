@@ -28,3 +28,6 @@ router.get('/', validateReqQuery(attendnaceFilterQuerySchema), attendanceControl
 
 // API to fetch attendnace summary of a specific user in a date range -- Admin or Manager can access
 router.get('/summary', roleAuth(Roles.admin, Roles.manager), validateReqQuery(attendnaceSummaryQuerySchema), attendanceController.attendanceSummary);
+
+// API to fetch an attendnace Data using its unique id - Admin or manager can access 
+router.get('/:id', roleAuth(Roles.admin, Roles.manager), attendanceController.readAttendnaceById);

@@ -48,6 +48,7 @@ export type OfficeFilterBody = {
     state?: string;
     city?: string;
     sortKey?: OfficeSortKeys;
+    officeName?: string;
 }
 
 export type OfficeWithUserData = Omit<IOffice, ' managers' | 'employees'> & {

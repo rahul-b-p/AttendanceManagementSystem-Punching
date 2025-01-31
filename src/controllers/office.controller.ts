@@ -4,7 +4,7 @@ import { Adress, CreateOfficeInputBody, Location, OfficeFilterBody, UpdateOffice
 import { isValidObjectId, permissionValidator, validateAdressWithLocation } from "../validators";
 import { getOfficeSortArgs, getPermissionSetFromDefaultRoles, logFunctionInfo, pagenate, sendCustomResponse } from "../utils";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
-import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById, softDeleteOfficeById, getDefaultRoleFromUserRole, isManagerAuthorizedForEmployee } from "../services";
+import { setUserToOfficeById, deleteOfficeById, fetchOffices, findOfficeById, findUserById, insertOffice, updateOfficeById, validateLocationUniqueness, unsetUserFromOfficeById, softDeleteOfficeById, getDefaultRoleFromUserRole, isManagerAuthorizedForEmployee, getOfficeDataById } from "../services";
 import { Actions, FetchType, FunctionStatus, Roles } from "../enums";
 import { Types } from "mongoose";
 import { errorMessage, responseMessage } from "../constants";
@@ -52,12 +52,12 @@ export const readOffices = async (req: customRequestWithPayload<{}, any, any, Of
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        const { city, pageLimit, pageNo, sortKey, state } = req.query;
+        const { city, pageLimit, pageNo, sortKey, state, officeName } = req.query;
 
         const sortArgs = getOfficeSortArgs(sortKey);
         const query = { city, state };
 
-        const fetchResult = await fetchOffices(FetchType.active, Number(pageNo), Number(pageLimit), query, sortArgs);
+        const fetchResult = await fetchOffices(FetchType.active, Number(pageNo), Number(pageLimit), query, sortArgs, officeName);
 
         const message = fetchResult ? responseMessage.OFFICE_DATA_FETCHED : errorMessage.OFFICE_DATA_NOT_FOUND;
         let PageNationFeilds;
@@ -347,5 +347,29 @@ export const deleteOfficeTrash = async (req: customRequestWithPayload<{ id: stri
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error);
         next(error);
+    }
+}
+
+
+/**
+ * Controller Function to fetch complete details onf an office using its unique id
+ *  @protected - only admin can access this feature
+ */
+export const readOfficeById = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = readOfficeById.name;
+    logFunctionInfo(functionName, FunctionStatus.start);
+    try {
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
+
+        const officeData = await getOfficeDataById(id);
+        if (!officeData) throw new NotFoundError(errorMessage.OFFICE_NOT_FOUND);
+
+        logFunctionInfo(functionName, FunctionStatus.start);
+        res.status(200).json(await sendCustomResponse(responseMessage.OFFICE_DATA_FETCHED, officeData));
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        next(error)
     }
 }
