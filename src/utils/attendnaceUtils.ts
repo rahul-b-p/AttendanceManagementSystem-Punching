@@ -1,7 +1,6 @@
 import { Types } from "mongoose";
 import { AttendanceQuery } from "../types";
 import { getDateRange, getDayRange } from "./momentUtils";
-import { logger } from "./logger";
 import { getDayNumber } from "./dayUtils";
 import { Days } from "../enums";
 
@@ -58,6 +57,5 @@ export const prepareAddFeilds = (query: AttendanceQuery): Record<string, any> =>
         addFeilds["dayOfWeekName"] = { $dayOfWeek: { $toDate: "$punchIn" } }
     }
 
-    logger.info(addFeilds)
     return addFeilds;
 }

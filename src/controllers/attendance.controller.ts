@@ -360,16 +360,16 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
                 if (ownerRole !== Roles.admin) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
             }
             else {
-                const existingOffice = findOfficeById(existingUser.officeId.toString());
-                if (!existingOffice) throw new InternalServerError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+                const existingOffice = await findOfficeById(existingUser.officeId.toString());
+                if (!existingOffice) throw new NotFoundError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
             }
         }
 
         if (officeId) {
             if (ownerRole !== Roles.admin) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
 
-            const existingOffice = findOfficeById(officeId.toString());
-            if (!existingOffice) throw new InternalServerError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+            const existingOffice = await findOfficeById(officeId.toString());
+            if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_DATA_NOT_FOUND);
         }
 
         if (date) {
@@ -493,6 +493,10 @@ export const readAttendnaceById = async (req: customRequestWithPayload<{ id: str
     }
 }
 
+
+/**
+ * Controller Function to get attendnace summary on dleted offices, if employee has any prevous office history on trash
+ */
 export const deletedOfficeAttendanceSummary = async (req: customRequestWithPayload<{}, any, any, AttendanceSummaryQuery>, res: Response, next: NextFunction) => {
     const functionName = deletedOfficeAttendanceSummary.name;
     logFunctionInfo(functionName, FunctionStatus.start)
@@ -516,4 +520,4 @@ export const deletedOfficeAttendanceSummary = async (req: customRequestWithPaylo
         logFunctionInfo(functionName, FunctionStatus.start);
         next(error);
     }
-}
+} 
