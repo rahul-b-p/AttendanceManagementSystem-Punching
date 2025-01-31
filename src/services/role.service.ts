@@ -187,3 +187,22 @@ export const getDefaultRoleFromUserRole = async (roleString: string): Promise<Ro
         throw new Error(error.message);
     }
 }
+
+
+/**
+ * To find custom role using its unique id 
+ */
+export const findCustomRoleById = async (_id: string): Promise<ICustomRole | null> => {
+    const functionName = findCustomRoleById.name;
+    logFunctionInfo(functionName, FunctionStatus.start);
+
+    try {
+        const customRole = await CustomRole.findById(_id);
+        logFunctionInfo(functionName, FunctionStatus.success);
+
+        return customRole
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        throw new Error(error.message);
+    }
+}

@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import { customRequestWithPayload } from "../interfaces";
 import { logFunctionInfo, pagenate, sendCustomResponse } from "../utils";
 import { CustomRolesFilter, InsertRoleArgs, UpdateRoleArgs } from "../types";
-import { deleteCustomRoleById, fetchCustomRoles, findCustomRole, insertRole, updateCustomRoleById } from "../services";
+import { deleteCustomRoleById, fetchCustomRoles, findCustomRole, findCustomRoleById, insertRole, updateCustomRoleById } from "../services";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors";
 import { isValidObjectId } from "../validators";
 import { FunctionStatus } from "../enums";
@@ -117,6 +117,32 @@ export const deleteCustomRole = async (req: customRequestWithPayload<{ id: strin
         res.status(200).json(await sendCustomResponse(responseMessage.ROLE_DELETED));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        next(error);
+    }
+}
+
+/**
+ * Controller Function to read a custom role using its un ique id
+ * @param id - unique id of a custom role
+ * @protected - only admin can access
+ */
+export const readCustomRoleById = async (req: customRequestWithPayload<{ id: string }>, res: Response, next: NextFunction) => {
+    const functionName = readCustomRoleById.name;
+    logFunctionInfo(functionName, FunctionStatus.start);
+
+    try {
+        const { id } = req.params;
+        const isValidId = isValidObjectId(id);
+        if (!isValidId) throw new BadRequestError(errorMessage.INVALID_ID);
+
+
+        const existingRole = await findCustomRoleById(id);
+        if (!existingRole) throw new NotFoundError(errorMessage.ROLE_NOT_FOUND);
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        res.status(200).json(await sendCustomResponse(responseMessage.ROLE_DATA_FETCHED, existingRole));
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail);
         next(error);
     }
 }
