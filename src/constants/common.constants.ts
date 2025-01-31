@@ -6,7 +6,7 @@ export const {
     //error-messages
     DATA_NOT_FOUND = " not found to display.",
     ALREADY_EXISTS = " already exists.",
-    NOT_FOUND="not found with the given Data",
+    NOT_FOUND=" not found with the given Data",
 
     //success-message
     DATA_CREATED = " has been created successfully.",

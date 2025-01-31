@@ -166,7 +166,7 @@ export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
 
     try {
         const office = await Office.findById(_id);
-
+        if (office && office.isDeleted) return null;
         logFunctionInfo(functionName, FunctionStatus.success);
         return office;
     } catch (error: any) {
@@ -386,7 +386,10 @@ export const getOfficeDataById = async (id: string): Promise<OfficeWithUserData 
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        const matchFilter = { _id: new Types.ObjectId(id) };
+        const matchFilter = {
+            _id: new Types.ObjectId(id),
+            isDeleted:false
+        };
 
         const officeData: OfficeWithUserData[] = await Office.aggregate([
             { $match: matchFilter },
