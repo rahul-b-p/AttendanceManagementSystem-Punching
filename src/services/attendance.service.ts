@@ -429,3 +429,23 @@ export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Prom
         throw new Error(error.message);
     }
 }
+
+/**
+ * to get Attendnace Data using its unique id
+ */
+export const getAttendnaceDataById = async (id: string): Promise<AttendanceToShow | null> => {
+    const functionName = getAttendnaceDataById.name;
+    logFunctionInfo(functionName, FunctionStatus.start);
+
+    try {
+        const match: any = { _id: new Types.ObjectId(id) };
+        const attendanceData = await aggregateAttendanceData({}, match, 0, 1, { createAt: 1 });
+        logFunctionInfo(functionName, FunctionStatus.success);
+
+        if (attendanceData.length <= 0) return null;
+        else return attendanceData[0];
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        throw new Error(error.message);
+    }
+}
