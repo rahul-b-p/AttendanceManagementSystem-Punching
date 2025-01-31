@@ -44,5 +44,6 @@ export const {
     ATTENDANCE_DATA_FETCHED = ATTENDANCE + DATA_FETCHED,
     ATTENDANCE_UPDATED = ATTENDANCE + DATA_UPDATED,
     ATTENDANCE_DELETED = ATTENDANCE + DATA_DELETED,
-    ATTENDANCE_SUMMARY_FETCHED = "Attendance summary for the user has been fetched successfully."
+    ATTENDANCE_SUMMARY_FETCHED = "Attendance summary for the user has been fetched successfully.",
+    ATTENDANCE_TRASH_SUMMARY_FETCHED ="Users' attendance summary for deleted offices has been successfully retrieved."
 } = {} as const;

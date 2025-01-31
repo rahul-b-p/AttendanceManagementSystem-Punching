@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IUser } from "../interfaces";
-import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logFunctionInfo, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
+import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logFunctionInfo, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
 import { checkPunchInForDay, comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getAttendnaceDataById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
@@ -433,13 +433,15 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
 
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
+        const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role)
 
-        if (ownerRole !== Roles.admin) {
+        if (existingUserRole !== Roles.admin) {
             if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
-
             const existingOffice = findOfficeById(existingUser.officeId.toString());
             if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
+        }
 
+        if (ownerRole !== Roles.admin) {
             const isPermitted = await isManagerAuthorizedForEmployee(userId, ownerId);
             if (!isPermitted) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
         }
@@ -487,6 +489,31 @@ export const readAttendnaceById = async (req: customRequestWithPayload<{ id: str
         res.status(200).json(await sendCustomResponse(responseMessage.ATTENDANCE_DATA_FETCHED, attendnaceData));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        next(error);
+    }
+}
+
+export const deletedOfficeAttendanceSummary = async (req: customRequestWithPayload<{}, any, any, AttendanceSummaryQuery>, res: Response, next: NextFunction) => {
+    const functionName = deletedOfficeAttendanceSummary.name;
+    logFunctionInfo(functionName, FunctionStatus.start)
+
+    try {
+        const { userId, startDate, endDate } = req.query;
+
+        const StartAndEndDateStatus = [startDate, endDate].map(compareDatesWithCurrentDate);
+        if (StartAndEndDateStatus.includes(DateStatus.Future)) throw new BadRequestError(errorMessage.CANNOT_FILTER_FUTURE_ATTENDANCE);
+
+        const existingUser = await findUserById(userId);
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
+
+        const attendnceSummaryData = await findAttendanceSummary(req.query, FetchType.trash);
+        const message = attendnceSummaryData ? responseMessage.ATTENDANCE_TRASH_SUMMARY_FETCHED : errorMessage.NO_ATTENDANCE_HISTORY_IN_DELETED_OFFICE;
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        res.status(200).json(await sendCustomResponse(message, attendnceSummaryData));
+
+    } catch (error) {
+        logFunctionInfo(functionName, FunctionStatus.start);
         next(error);
     }
 }
