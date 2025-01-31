@@ -120,5 +120,6 @@ export const {
     INVALID_DATE_ISO = "Invalid date provided.",
     INVALID_DATE_AS_DATE = "Invalid date format of stringified date object.",
     NO_TIMEZONE_FOUND = "No timezone found for the given coordinates.",
-    INVALID_INPUT_PARAMETERS = "Invalid input parameters."
+    INVALID_INPUT_PARAMETERS = "Invalid input parameters.",
+    INVALID_SEARCH_KEY="Search key should be string"
 } = {} as const;

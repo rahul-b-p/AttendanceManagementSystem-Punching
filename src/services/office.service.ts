@@ -53,7 +53,7 @@ export const insertOffice = async (officeData: InsertOfficeArgs): Promise<IOffic
 /**
  * Fetches office data using aggregation with support for filtering, sorting, and pagination.
  */
-export const fetchOffices = async (fetchType: FetchType, page: number, limit: number, query: officeQuery, sort: OfficeSortArgs): Promise<OfficeFetchResult | null> => {
+export const fetchOffices = async (fetchType: FetchType, page: number, limit: number, query: officeQuery, sort: OfficeSortArgs, officeName?: string): Promise<OfficeFetchResult | null> => {
     const functionName = 'fetchOffices';
     logFunctionInfo(functionName, FunctionStatus.start);
 
@@ -76,6 +76,10 @@ export const fetchOffices = async (fetchType: FetchType, page: number, limit: nu
         }
         if (query.state) {
             matchFilter["adress.state"] = query.state;
+        }
+
+        if (officeName) {
+            matchFilter["officeName"] = { $regex: officeName, $options: "i" };
         }
 
         const totalFilter = await Office.aggregate([
@@ -268,7 +272,7 @@ export const unsetUserFromOfficeById = async (_id: string, userId: string, role:
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        
+
         const updateObject: any = {};
         if (role == Roles.manager) {
             updateObject.managers = userId;
@@ -369,5 +373,72 @@ export const getAllOfficeLocationsAndRadius = async (): Promise<LocationWithRadi
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
+    }
+}
+
+
+/**
+ * To get All details of an office using its unique id.
+ * Fetches the details of users assigned in the office
+ */
+export const getOfficeDataById = async (id: string): Promise<OfficeWithUserData | null> => {
+    const functionName = getOfficeDataById.name;
+    logFunctionInfo(functionName, FunctionStatus.start);
+
+    try {
+        const matchFilter = { _id: new Types.ObjectId(id) };
+
+        const officeData: OfficeWithUserData[] = await Office.aggregate([
+            { $match: matchFilter },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'managers',
+                    foreignField: '_id',
+                    as: 'managers',
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'employees',
+                    foreignField: '_id',
+                    as: 'employees',
+                },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    officeName: 1,
+                    adress: 1,
+                    location: 1,
+                    radius: 1,
+                    managers: {
+                        _id: 1,
+                        username: 1,
+                        email: 1,
+                        phone: 1,
+                        role: 1,
+                        verified: 1
+                    },
+                    employees: {
+                        _id: 1,
+                        username: 1,
+                        email: 1,
+                        phone: 1,
+                        role: 1,
+                        verified: 1
+                    },
+                    createdAt: 1,
+                },
+            },
+        ]);
+
+        logFunctionInfo(functionName, FunctionStatus.success)
+        if (officeData.length <= 0) return null;
+        else return officeData[0];
+    } catch (error: any) {
+        logFunctionInfo(functionName, FunctionStatus.fail, error.message);
+        throw new Error(error.message)
     }
 }

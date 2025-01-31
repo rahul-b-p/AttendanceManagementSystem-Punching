@@ -31,3 +31,6 @@ router.get('/trash', roleAuth(Roles.admin), validateReqQuery(officeFilterQuerySc
 
 // API to delete a office data from trash -- only for admin
 router.delete('/trash/:id', roleAuth(Roles.admin), officeController.deleteOfficeTrash);
+
+// API to find Office Data with id
+router.get('/:id', roleAuth(Roles.admin), officeController.readOfficeById);
