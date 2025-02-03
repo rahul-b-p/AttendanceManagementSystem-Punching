@@ -308,27 +308,11 @@ export const getUserData = async (_id: string): Promise<UserToShow | null> => {
                 },
             },
             {
-                $lookup: {
-                    from: 'attendances',
-                    localField: '_id',
-                    foreignField: 'userId',
-                    as: 'attendances',
-                    pipeline: [
-                        {
-                            $project: {
-                                _id: 1,
-                                punchIn: 1,
-                                punchOut: 1,
-                                location: 1,
-                            },
-                        },
-                    ]
-                }
-            }, {
                 $project: {
                     __v: 0,
                     password: 0,
                     refreshToken: 0,
+                    officeId:0
                 }
             }
         ]);
