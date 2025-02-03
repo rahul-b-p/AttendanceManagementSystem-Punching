@@ -3,7 +3,7 @@ import { FunctionStatus, Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
 import { User } from "../models";
 import { IUserData, UserFetchResult, UserInsertArgs, userQuery, UserToShow, UserUpdateArgs } from "../types";
-import { logFunctionInfo } from "../utils";
+import { logFunctionInfo, logger } from "../utils";
 import { setUserToOfficeById } from "./office.service";
 
 
@@ -258,72 +258,18 @@ export const getUserData = async (_id: string): Promise<UserToShow | null> => {
     const functionName = 'getUserData';
     logFunctionInfo(functionName, FunctionStatus.start);
     try {
-        const user = await User.aggregate([
-            {
-                $match: { _id: new Types.ObjectId(_id) }
-            },
-            {
-                $lookup: {
-                    from: 'offices',
-                    localField: 'officeId',
-                    foreignField: '_id',
-                    as: 'office',
-                    pipeline: [
-                        {
-                            $project: {
-                                _id: 1,
-                                officeName: 1,
-                                adress: {
-                                    street: 1,
-                                    city: 1,
-                                    state: 1,
-                                    zip_code: 1
-                                },
-                                location: {
-                                    latitude: 1,
-                                    longitude: 1
-                                },
-                                radius: 1
-                            },
-                        },
-                    ]
-                }
-            },
-            {
-                $unwind: {
-                    path: "$office",
-                    preserveNullAndEmptyArrays: true,
-                },
-            },
-            {
-                $lookup: {
-                    from: 'attendances',
-                    localField: '_id',
-                    foreignField: 'userId',
-                    as: 'attendances',
-                    pipeline: [
-                        {
-                            $project: {
-                                _id: 1,
-                                punchIn: 1,
-                                punchOut: 1,
-                                location: 1,
-                            },
-                        },
-                    ]
-                }
-            }, {
-                $project: {
-                    __v: 0,
-                    password: 0,
-                    refreshToken: 0,
-                }
-            }
-        ]);
-        if (user.length <= 0) return null
+        const userData = await User.findById(_id).populate({
+            path: 'officeId',
+            select: '-managers -employees -isDeleted -createdAt -updatedAt -__v',
+        }).select('-password -refreshToken -__v').lean() as UserToShow;
+
+        if (!userData) return null;
+
+        userData.office = userData.officeId;
+        delete userData.officeId;
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        return user[0] as UserToShow;
+        return userData as UserToShow
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail);
         throw new Error(error.message);

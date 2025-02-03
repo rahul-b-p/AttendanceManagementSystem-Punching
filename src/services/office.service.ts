@@ -381,62 +381,22 @@ export const getAllOfficeLocationsAndRadius = async (): Promise<LocationWithRadi
  * To get All details of an office using its unique id.
  * Fetches the details of users assigned in the office
  */
-export const getOfficeDataById = async (id: string): Promise<OfficeWithUserData | null> => {
+export const getOfficeDataById = async (_id: string): Promise<IOffice | null> => {
     const functionName = getOfficeDataById.name;
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        const matchFilter = { _id: new Types.ObjectId(id) };
-
-        const officeData: OfficeWithUserData[] = await Office.aggregate([
-            { $match: matchFilter },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'managers',
-                    foreignField: '_id',
-                    as: 'managers',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'employees',
-                    foreignField: '_id',
-                    as: 'employees',
-                },
-            },
-            {
-                $project: {
-                    _id: 1,
-                    officeName: 1,
-                    adress: 1,
-                    location: 1,
-                    radius: 1,
-                    managers: {
-                        _id: 1,
-                        username: 1,
-                        email: 1,
-                        phone: 1,
-                        role: 1,
-                        verified: 1
-                    },
-                    employees: {
-                        _id: 1,
-                        username: 1,
-                        email: 1,
-                        phone: 1,
-                        role: 1,
-                        verified: 1
-                    },
-                    createdAt: 1,
-                },
-            },
-        ]);
+        const officeData = await Office.findOne({ _id, isDeleted: false }).populate({
+            path: 'employees',
+            select: '-password -refreshToken  -officeId -createdAt -updatedAt -__v'
+        }).populate({
+            path: 'managers',
+            select: '-password -refreshToken -officeId -createdAt -updatedAt -__v'
+        }).select('-isDeleted -__v').lean();
 
         logFunctionInfo(functionName, FunctionStatus.success)
-        if (officeData.length <= 0) return null;
-        else return officeData[0];
+        if (!officeData) return null;
+        else return officeData;
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message)
