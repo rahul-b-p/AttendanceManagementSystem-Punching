@@ -6,3 +6,4 @@ export * from './office.type';
 export * from './attendance.type';
 export * from './date.type';
 export * from './time.type';
+export * from './auth.type';
