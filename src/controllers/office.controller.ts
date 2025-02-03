@@ -206,7 +206,7 @@ export const assignToOffice = async (req: customRequestWithPayload<{ officeId: s
 
             const managerPermit = getPermissionSetFromDefaultRoles(Roles.manager, Roles.admin);
 
-            if (managerDataDefaultRole !== Roles.manager) {
+            if (managerDataDefaultRole !== Roles.manager && managerDataDefaultRole !== Roles.admin) {
                 const permitted = await Promise.all(Object.values(Actions).map((item) => {
                     return permissionValidator(managerPermit, managerData.role, item);
                 }));

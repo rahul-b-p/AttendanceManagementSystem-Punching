@@ -356,12 +356,17 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
             const existingUser = await findUserById(userId);
             if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
+            const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role);
+
+
             if (!existingUser.officeId) {
-                if (ownerRole !== Roles.admin) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
+                if (existingUserRole !== Roles.admin) throw new ForbiddenError(errorMessage.USER_NOT_IN_OFFICE);
             }
             else {
                 const existingOffice = await findOfficeById(existingUser.officeId.toString());
                 if (!existingOffice) throw new NotFoundError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+                if (ownerRole !== Roles.admin) {
+                    if (existingOffice._id.toString() !== ownerData.officeId?.toString()) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);                }
             }
         }
 
@@ -435,15 +440,15 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
         if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
         const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role)
 
-        if (existingUserRole !== Roles.admin) {
-            if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
-            const existingOffice = findOfficeById(existingUser.officeId.toString());
-            if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
-        }
-
         if (ownerRole !== Roles.admin) {
             const isPermitted = await isManagerAuthorizedForEmployee(userId, ownerId);
             if (!isPermitted) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
+        }
+        
+        if (existingUserRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError(errorMessage.USER_NOT_IN_OFFICE);
+            const existingOffice = findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
         }
 
         const attendnceSummaryData = await findAttendanceSummary(req.query, FetchType.active);
@@ -481,7 +486,7 @@ export const readAttendnaceById = async (req: customRequestWithPayload<{ id: str
 
         if (ownerRole != Roles.admin) {
             const userId = attendnaceData.user._id.toString();
-            const isUserPermettedForManager = isManagerAuthorizedForEmployee(userId, reqOwnerId);
+            const isUserPermettedForManager = await isManagerAuthorizedForEmployee(userId, reqOwnerId);
             if (!isUserPermettedForManager) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
         }
 

@@ -1,4 +1,5 @@
 import express from 'express';
+import morgan from 'morgan';
 import { createDefaultAdmin, logger } from './utils';
 import './config/envConfig';
 import { connectDB } from './database';
@@ -22,6 +23,14 @@ const initializeApp = async () => {
 
         // Setup json body parser middleware
         app.use(express.json());
+
+        // morgan logger combined with winston logger
+        const stream = {
+            write: (message: any) => logger.info(message.trim())
+        };
+
+        app.use(morgan("dev", { stream }));
+
 
         // Setup routes
         app.use('/auth', authRouter);

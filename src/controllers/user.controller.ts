@@ -146,12 +146,14 @@ export const updateUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         const existingUser = await findUserById(id);
         if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
+        const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role);
+
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
         const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
 
         if (reqOwnerRole !== Roles.admin) {
-            if (existingUser.role == Roles.admin) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
+            if (existingUserRole == Roles.admin) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
 
             const isPermitted = await isManagerAuthorizedForEmployee(existingUser._id.toString(), reqOwnerId);
             if (!isPermitted) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
@@ -220,7 +222,14 @@ export const deleteUserByAdmin = async (req: customRequestWithPayload<{ id: stri
         const reqOwnerId = req.payload?.id as string;
         const reqOwner = await findUserById(reqOwnerId) as IUser;
         const reqOwnerRole = await getDefaultRoleFromUserRole(reqOwner.role);
-        if (existingUserRole == Roles.admin && reqOwnerRole !== Roles.admin) throw new ForbiddenError('Forbidden: Insufficient role privileges');
+
+        if (reqOwnerRole !== Roles.admin) {
+            if (existingUserRole == Roles.admin) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
+
+            const isPermitted = await isManagerAuthorizedForEmployee(existingUser._id.toString(), reqOwnerId);
+            if (!isPermitted) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
+        }
+
 
         await deleteUserById(id);
         logFunctionInfo(functionName, FunctionStatus.success);

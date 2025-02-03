@@ -31,6 +31,7 @@ export const {
     USER_DATA_NOT_FOUND = USER + DATA_NOT_FOUND,
     ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE = "You are only authorized to access employees of the assigned office.",
     EMAIL_ALREADY_IN_USE = "The email address you entered is already associated with your account.",
+    USER_NOT_IN_OFFICE = "Given User Not assigned in any office",
 
     // Office Handling
     LOCATION_NOT_MATCHED = "The location does not match the provided address.",
@@ -45,6 +46,7 @@ export const {
     EMPLOYEE_NOT_FOUND_IN_OFFICE = USER_NOT_FOUND + ', As Employee in the given Office',
     TRASH_EMPTY = "Your trash is empty.",
     OFFICE_NOT_FOUND_IN_TRASH = "The requested office was not found in the trash.",
+
 
     // Attendance Handling
     NO_OFFICE_ASSIGNMENT_PUNCH = "You cannot punch in or punch out without being assigned to an office.",
@@ -66,7 +68,7 @@ export const {
     CANNOT_FILTER_FUTURE_ATTENDANCE = "Future attendance data cannot be filtered.",
     ATTENDANCE_DATA_NOT_FOUND = ATTENDANCE + DATA_NOT_FOUND,
     NO_ATTENDANCE_HISTORY_IN_DATE_RANGE = "The user has no attendance history between the given date range.",
-    NO_ATTENDANCE_HISTORY_IN_DELETED_OFFICE ="The user has any attendnace history on deleted offices on given date ramge",
+    NO_ATTENDANCE_HISTORY_IN_DELETED_OFFICE = "The user has any attendnace history on deleted offices on given date ramge",
 
     // Validation
     VALIDATION_FAILED = "Validation failed.",
@@ -122,5 +124,5 @@ export const {
     INVALID_DATE_AS_DATE = "Invalid date format of stringified date object.",
     NO_TIMEZONE_FOUND = "No timezone found for the given coordinates.",
     INVALID_INPUT_PARAMETERS = "Invalid input parameters.",
-    INVALID_SEARCH_KEY="Search key should be string"
+    INVALID_SEARCH_KEY = "Search key should be string"
 } = {} as const;
