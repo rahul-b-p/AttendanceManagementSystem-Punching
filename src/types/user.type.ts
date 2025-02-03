@@ -57,7 +57,7 @@ export type userQuery = {
 export type UserToShow = UserInsertArgs & {
     _id: Types.ObjectId;
     createdAt: string;
-    office?: IOffice;
+    office?: IOffice | string;
     attendnaces?: IAttendance[];
 }
 
