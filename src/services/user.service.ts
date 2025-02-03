@@ -1,7 +1,7 @@
-import { Types } from "mongoose";
+import { startSession, Types } from "mongoose";
 import { FunctionStatus, Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
-import { User } from "../models";
+import { Attendance, User } from "../models";
 import { IUserData, UserFetchResult, UserInsertArgs, userQuery, UserToShow, UserUpdateArgs } from "../types";
 import { logFunctionInfo, logger } from "../utils";
 import { setUserToOfficeById } from "./office.service";
@@ -182,7 +182,7 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
                 }
             },
             {
-                $unwind:{
+                $unwind: {
                     path: "$office",
                     preserveNullAndEmptyArrays: true,
                 }
@@ -195,7 +195,7 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
                     phone: 1,
                     role: 1,
                     createAt: 1,
-                    verified:1,
+                    verified: 1,
                     office: {
                         _id: 1,
                         officeName: 1,
@@ -239,12 +239,24 @@ export const fetchUsers = async (page: number, limit: number, query: userQuery, 
 export const deleteUserById = async (_id: string): Promise<void> => {
     const functionName = 'deleteUserById';
     logFunctionInfo(functionName, FunctionStatus.start);
+
+    const session = await startSession();
+    session.startTransaction();
+
     try {
         const deletedUser = await User.findByIdAndDelete(_id);
+
+        await Attendance.deleteMany({ userId: _id });
+
+        await session.commitTransaction();
+        session.endSession();
         logFunctionInfo(functionName, FunctionStatus.success);
         if (!deletedUser) throw new Error('Invalid Id provided for deletion');
         else return;
     } catch (error: any) {
+        await session.abortTransaction();
+        session.endSession();
+
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }

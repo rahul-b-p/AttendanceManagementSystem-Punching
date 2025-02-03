@@ -2,9 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { hashPassword, logFunctionInfo, logger } from "../utils";
 import { AuthenticationError, InternalServerError, NotFoundError } from "../errors";
 import { comparePassword, sendCustomResponse } from "../utils";
-import { signAccessToken, signRefreshToken } from "../jwt";
 import { UserAuthBody, UserOtpVerifyBody, UserUpdateArgs } from "../types";
-import { blacklistToken, findUserByEmail, getUserData, findUserById, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp } from "../services";
+import { blacklistToken, findUserByEmail, findUserById, sendOtpForInitialLogin, sendOtpForPasswordReset, updateUserById, verifyOtp, signNewTokens, verfyAccountAndSignNewTokens } from "../services";
 import { customRequestWithPayload } from "../interfaces";
 import { FunctionStatus } from "../enums";
 import { errorMessage, responseMessage } from "../constants";
@@ -43,15 +42,11 @@ export const login = async (req: Request<{}, any, UserAuthBody>, res: Response, 
         const isVerifiedPassword = await comparePassword(password, existingUser.password);
         if (!isVerifiedPassword) throw new AuthenticationError(errorMessage.INVALID_PASSWORD);
 
-        const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
-        const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
-
-        const updateRefreshToken = { $set: { refreshToken: RefreshToken } };
-        await updateUserById(existingUser._id.toString(), updateRefreshToken);
+        const tokens = await signNewTokens(existingUser);
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.statusMessage = "Login Successful";
-        res.status(200).json({ ...await sendCustomResponse(responseMessage.SUCCESS_LOGIN), AccessToken, RefreshToken });
+        res.status(200).json(await sendCustomResponse(responseMessage.SUCCESS_LOGIN, { tokens }));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error)
@@ -73,14 +68,10 @@ export const refresh = async (req: customRequestWithPayload, res: Response, next
         const existingUser = await findUserById(id);
         if (!existingUser) throw new InternalServerError(errorMessage.AUTHORIZATION_FAILED);
 
-        const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
-        const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
-
-        const updateRefreshToken = { $set: { refreshToken: RefreshToken } };
-        await updateUserById(existingUser._id.toString(), updateRefreshToken);
+        const tokens = await signNewTokens(existingUser);
 
         logFunctionInfo(functionName, FunctionStatus.success);
-        res.status(200).json({ ...await sendCustomResponse(responseMessage.TOKEN_REFRESHED), AccessToken, RefreshToken });
+        res.status(200).json(await sendCustomResponse(responseMessage.TOKEN_REFRESHED, { tokens }));
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         next(error);
@@ -136,18 +127,11 @@ export const firstLoginOtpValidation = async (req: Request<{}, any, UserOtpVerif
         if (!isValidOtp) throw new AuthenticationError(errorMessage.INVALID_OTP);
 
 
-        const AccessToken = await signAccessToken(existingUser._id.toString(), existingUser.role);
-        const RefreshToken = await signRefreshToken(existingUser._id.toString(), existingUser.role);
-
-        const password = await hashPassword(confirmPassword);
-        const updateRefreshToken: UserUpdateArgs = { $set: { refreshToken: RefreshToken, verified: true, password } };
-        await updateUserById(existingUser._id.toString(), updateRefreshToken);
-
-        const UserData = await getUserData(existingUser._id.toString());
+        const tokens = await verfyAccountAndSignNewTokens(existingUser, confirmPassword);
 
         logFunctionInfo(functionName, FunctionStatus.success);
         res.statusMessage = "Login Successful";
-        res.status(200).json({ ...await sendCustomResponse(responseMessage.SUCCESS_LOGIN, UserData), AccessToken, RefreshToken });
+        res.status(200).json(await sendCustomResponse(responseMessage.SUCCESS_LOGIN, { tokens }));
 
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);

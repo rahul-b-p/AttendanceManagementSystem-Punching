@@ -66,6 +66,7 @@ export const {
     CANNOT_FILTER_FUTURE_ATTENDANCE = "Future attendance data cannot be filtered.",
     ATTENDANCE_DATA_NOT_FOUND = ATTENDANCE + DATA_NOT_FOUND,
     NO_ATTENDANCE_HISTORY_IN_DATE_RANGE = "The user has no attendance history between the given date range.",
+    NO_ATTENDANCE_HISTORY_IN_DELETED_OFFICE ="The user has any attendnace history on deleted offices on given date ramge",
 
     // Validation
     VALIDATION_FAILED = "Validation failed.",

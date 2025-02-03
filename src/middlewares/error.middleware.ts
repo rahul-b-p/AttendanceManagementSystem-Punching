@@ -13,7 +13,7 @@ export const ErrorHandler: ErrorRequestHandler = (err: Error, req: Request, res:
     if (err instanceof CustomError) {
         if (err instanceof InternalServerError) {
             logger.error(`Application Error: ${err.message}`);
-            res.status(err.statusCode).json(err.serialize)
+            res.status(err.statusCode).json(err.serialize())
         }
         logger.warn(errorMessage.REQUEST_FAILED);
         res.status(err.statusCode).json(err.serialize());
