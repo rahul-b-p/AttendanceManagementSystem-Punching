@@ -3,6 +3,8 @@ import { attendanceController } from "../controllers";
 import { roleAuth, validateReqBody, validateReqQuery } from "../middlewares";
 import { attendnaceFilterQuerySchema, attendnaceSummaryQuerySchema, createAttendanceSchema, attendnacePunchSchema, updateAttendanceSchema } from "../schemas";
 import { Roles } from "../enums";
+import { logger } from "../utils";
+import { error } from "console";
 
 
 
@@ -31,3 +33,6 @@ router.get('/summary', roleAuth(Roles.admin, Roles.manager), validateReqQuery(at
 
 // API to fetch an attendnace Data using its unique id - Admin or manager can access 
 router.get('/:id', roleAuth(Roles.admin, Roles.manager), attendanceController.readAttendnaceById);
+
+// API to fetch attendance summary from trash, to retrive attendnace data in deleted offices - Admin only
+router.get('/trash/summary', roleAuth(Roles.admin), validateReqQuery(attendnaceSummaryQuerySchema), attendanceController.deletedOfficeAttendanceSummary);

@@ -1,9 +1,9 @@
-import { Types } from "mongoose";
+import { startSession, Types } from "mongoose";
 import { FetchType, FunctionStatus, OfficeSortArgs, Roles } from "../enums";
 import { IOffice } from "../interfaces";
-import { Office } from "../models"
+import { Attendance, Office, User } from "../models"
 import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData, LocationWithRadius } from "../types";
-import { logFunctionInfo } from "../utils";
+import { logFunctionInfo, logger } from "../utils";
 import { updateUserById } from "./user.service";
 import { errorMessage } from "../constants";
 
@@ -166,7 +166,7 @@ export const findOfficeById = async (_id: string): Promise<IOffice | null> => {
 
     try {
         const office = await Office.findById(_id);
-
+        if (office && office.isDeleted) return null;
         logFunctionInfo(functionName, FunctionStatus.success);
         return office;
     } catch (error: any) {
@@ -205,21 +205,32 @@ export const softDeleteOfficeById = async (_id: string): Promise<boolean> => {
     const functionName = 'softDeleteOfficeById';
     logFunctionInfo(functionName, FunctionStatus.start);
 
+    const session = await startSession();
+    session.startTransaction();
     try {
+
+
         const existingOffice = await findOfficeById(_id);
         if (!existingOffice || existingOffice.isDeleted) return false;
 
         const users = [...existingOffice.managers, ...existingOffice.employees]
-        await Promise.all(users.map((userId) => {
-            updateUserById(userId.toString(), { $unset: { officeId: 1 } });
-        }));
+
+        await User.updateMany({ _id: { $in: users } }, { $unset: { officeId: 1 } });
+
+        await Attendance.updateMany({ officeId: _id }, { $set: { isDeleted: true } });
 
         const deletedOffice = await Office.findByIdAndUpdate(_id, { isDeleted: true });
+
+        await session.commitTransaction();
+        session.endSession();
 
         logFunctionInfo(functionName, FunctionStatus.success);
         if (!deletedOffice) throw Error(errorMessage.OFFICE_NOT_FOUND);
         else return true;
     } catch (error: any) {
+        await session.abortTransaction();
+        session.endSession();
+
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
@@ -307,15 +318,27 @@ export const deleteOfficeById = async (_id: string): Promise<boolean> => {
     const functionName = 'deleteOfficeById';
     logFunctionInfo(functionName, FunctionStatus.start);
 
+    const session = await startSession();
+    session.startTransaction();
     try {
+
+
         const trashExistsOnId = await Office.exists({ _id, isDeleted: true });
         if (!trashExistsOnId) return false;
 
         const deletedOffice = await Office.findByIdAndDelete(_id);
 
+        await Attendance.deleteMany({ officeId: _id });
+
+        await session.commitTransaction();
+        session.endSession();
+
         logFunctionInfo(functionName, FunctionStatus.success);
         return deletedOffice !== null;
     } catch (error: any) {
+        await session.abortTransaction();
+        session.endSession();
+
         logFunctionInfo(functionName, FunctionStatus.fail, error.message);
         throw new Error(error.message);
     }
@@ -386,7 +409,10 @@ export const getOfficeDataById = async (id: string): Promise<OfficeWithUserData 
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        const matchFilter = { _id: new Types.ObjectId(id) };
+        const matchFilter = {
+            _id: new Types.ObjectId(id),
+            isDeleted: false
+        };
 
         const officeData: OfficeWithUserData[] = await Office.aggregate([
             { $match: matchFilter },

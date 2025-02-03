@@ -6,3 +6,4 @@ export * from './role.service';
 export * from './office.service';
 export * from './geoEncoding.service';
 export * from './attendance.service';
+export * from './auth.service';

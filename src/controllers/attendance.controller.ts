@@ -1,10 +1,10 @@
 import { NextFunction, Response } from "express";
 import { customRequestWithPayload, IUser } from "../interfaces";
-import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logFunctionInfo, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
+import { compareDatesWithCurrentDate, getAttendanceSortArgs, getDateFromInput, getTimeStamp, logFunctionInfo, logger, pagenate, sendCustomResponse, updateHoursAndMinutesInISODate, } from "../utils";
 import { AuthenticationError, BadRequestError, ConflictError, ForbiddenError, InternalServerError, NotFoundError } from "../errors";
 import { checkPunchInForDay, comparePunchInPunchOut, deleteAttendnaceById, fetchAttendanceData, findAttendanceById, findAttendanceSummary, findOfficeById, findUserById, getAllOfficeLocationsAndRadius, getAttendnaceDataById, getDefaultRoleFromUserRole, insertAttendance, isManagerAuthorizedForEmployee, updateAttendanceById } from "../services";
 import { AttendanceFilterQuery, AttendancePunchinArgs, AttendanceQuery, AttendanceSummaryQuery, createAttendanceBody, Location, UpdateAttendanceArgs, updateAttendanceBody } from "../types";
-import { DateStatus, FunctionStatus, Roles } from "../enums";
+import { DateStatus, FetchType, FunctionStatus, Roles } from "../enums";
 import { isValidObjectId, validateLocationWithinInstitutionRadius, validateLocationWithinMultipleInstitutionsRadius } from "../validators";
 import { getTimeZoneOfLocation } from "../utils/timezone";
 import { errorMessage, responseMessage } from "../constants";
@@ -356,17 +356,20 @@ export const readAllAttendance = async (req: customRequestWithPayload<{}, any, a
             const existingUser = await findUserById(userId);
             if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
 
-            if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
-
-            const existingOffice = findOfficeById(existingUser.officeId.toString());
-            if (!existingOffice) throw new InternalServerError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+            if (!existingUser.officeId) {
+                if (ownerRole !== Roles.admin) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
+            }
+            else {
+                const existingOffice = await findOfficeById(existingUser.officeId.toString());
+                if (!existingOffice) throw new NotFoundError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+            }
         }
 
         if (officeId) {
             if (ownerRole !== Roles.admin) throw new ForbiddenError(errorMessage.INSUFFICIENT_PRIVILEGES);
 
-            const existingOffice = findOfficeById(officeId.toString());
-            if (!existingOffice) throw new InternalServerError(errorMessage.USER_DATA_NOT_FOUND_OF_ATTENDANCE);
+            const existingOffice = await findOfficeById(officeId.toString());
+            if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_DATA_NOT_FOUND);
         }
 
         if (date) {
@@ -421,6 +424,7 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
     try {
         const ownerId = req.payload?.id as string;
         const ownerData = await findUserById(ownerId) as IUser;
+        const ownerRole = await getDefaultRoleFromUserRole(ownerData.role);
 
         const { userId, startDate, endDate } = req.query;
 
@@ -429,18 +433,20 @@ export const attendanceSummary = async (req: customRequestWithPayload<{}, any, a
 
         const existingUser = await findUserById(userId);
         if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
+        const existingUserRole = await getDefaultRoleFromUserRole(existingUser.role)
 
-        if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
+        if (existingUserRole !== Roles.admin) {
+            if (!existingUser.officeId) throw new ForbiddenError(errorMessage.NO_OFFICE_ASSIGNMENT);
+            const existingOffice = findOfficeById(existingUser.officeId.toString());
+            if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
+        }
 
-        const existingOffice = findOfficeById(existingUser.officeId.toString());
-        if (!existingOffice) throw new InternalServerError(errorMessage.OFFICE_ID_NOT_FOUND_IN_SYSTEM);
-
-        if (ownerData.role !== Roles.admin) {
+        if (ownerRole !== Roles.admin) {
             const isPermitted = await isManagerAuthorizedForEmployee(userId, ownerId);
             if (!isPermitted) throw new ForbiddenError(errorMessage.ACCESS_RESTRICTED_TO_ASSIGNED_OFFICE);
         }
 
-        const attendnceSummaryData = await findAttendanceSummary(req.query);
+        const attendnceSummaryData = await findAttendanceSummary(req.query, FetchType.active);
         const message = attendnceSummaryData ? responseMessage.ATTENDANCE_SUMMARY_FETCHED : errorMessage.NO_ATTENDANCE_HISTORY_IN_DATE_RANGE;
 
         logFunctionInfo(functionName, FunctionStatus.success);
@@ -486,3 +492,32 @@ export const readAttendnaceById = async (req: customRequestWithPayload<{ id: str
         next(error);
     }
 }
+
+
+/**
+ * Controller Function to get attendnace summary on dleted offices, if employee has any prevous office history on trash
+ */
+export const deletedOfficeAttendanceSummary = async (req: customRequestWithPayload<{}, any, any, AttendanceSummaryQuery>, res: Response, next: NextFunction) => {
+    const functionName = deletedOfficeAttendanceSummary.name;
+    logFunctionInfo(functionName, FunctionStatus.start)
+
+    try {
+        const { userId, startDate, endDate } = req.query;
+
+        const StartAndEndDateStatus = [startDate, endDate].map(compareDatesWithCurrentDate);
+        if (StartAndEndDateStatus.includes(DateStatus.Future)) throw new BadRequestError(errorMessage.CANNOT_FILTER_FUTURE_ATTENDANCE);
+
+        const existingUser = await findUserById(userId);
+        if (!existingUser) throw new NotFoundError(errorMessage.USER_NOT_FOUND);
+
+        const attendnceSummaryData = await findAttendanceSummary(req.query, FetchType.trash);
+        const message = attendnceSummaryData ? responseMessage.ATTENDANCE_TRASH_SUMMARY_FETCHED : errorMessage.NO_ATTENDANCE_HISTORY_IN_DELETED_OFFICE;
+
+        logFunctionInfo(functionName, FunctionStatus.success);
+        res.status(200).json(await sendCustomResponse(message, attendnceSummaryData));
+
+    } catch (error) {
+        logFunctionInfo(functionName, FunctionStatus.start);
+        next(error);
+    }
+} 

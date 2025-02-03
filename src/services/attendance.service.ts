@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { AttendanceSortArgs, FunctionStatus } from "../enums";
+import { AttendanceSortArgs, FetchType, FunctionStatus } from "../enums";
 import { IAttendance } from "../interfaces";
 import { Attendance } from "../models";
 import { AttendanceFetchResult, AttendancePunchinArgs, AttendanceQuery, AttendanceSummary, AttendanceSummaryQuery, AttendanceToShow, UpdateAttendanceArgs } from "../types";
@@ -32,7 +32,8 @@ export const checkPunchInForDay = async (userId: string, date?: string): Promise
 
         const attendanceExistOnCurrentDay = await Attendance.findOne({
             userId,
-            punchIn
+            punchIn,
+            isDeleted: false
         });
 
         logFunctionInfo(functionName, FunctionStatus.success);
@@ -96,6 +97,7 @@ export const findAttendanceById = async (_id: string): Promise<IAttendance | nul
     try {
         const attennaceData = await Attendance.findById(_id).lean();
 
+        if (attennaceData && attennaceData.isDeleted) return null;
         logFunctionInfo(functionName, FunctionStatus.success);
         return attennaceData;
     } catch (error: any) {
@@ -334,7 +336,7 @@ export const fetchAttendanceData = async (page: number, limit: number, query: At
  * Fetches attendance summary by aggregating,
  * needs a userId and date range for calculations
 */
-export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Promise<AttendanceSummary | null> => {
+export const findAttendanceSummary = async (query: AttendanceSummaryQuery, summaryType: FetchType): Promise<AttendanceSummary | null> => {
     const functionName = "findAttendanceSummary";
     logFunctionInfo(functionName, FunctionStatus.start);
 
@@ -342,12 +344,19 @@ export const findAttendanceSummary = async (query: AttendanceSummaryQuery): Prom
     try {
 
         const dateDange = getDateRange(startDate, endDate);
-        const matchFilter = {
+        const matchFilter: any = {
             userId: new Types.ObjectId(userId),
             punchIn: {
                 $gte: dateDange[0],
                 $lte: dateDange[1]
             }
+        }
+
+        if (summaryType == FetchType.active) {
+            matchFilter["isDeleted"] = false;
+        }
+        else if (summaryType == FetchType.trash) {
+            matchFilter["isDeleted"] = true;
         }
 
         const attendanceSummary: AttendanceSummary[] = await Attendance.aggregate([
@@ -438,7 +447,7 @@ export const getAttendnaceDataById = async (id: string): Promise<AttendanceToSho
     logFunctionInfo(functionName, FunctionStatus.start);
 
     try {
-        const match: any = { _id: new Types.ObjectId(id) };
+        const match: any = { _id: new Types.ObjectId(id), isDeleted: false };
         const attendanceData = await aggregateAttendanceData({}, match, 0, 1, { createAt: 1 });
         logFunctionInfo(functionName, FunctionStatus.success);
 
