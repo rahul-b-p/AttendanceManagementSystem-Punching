@@ -3,7 +3,7 @@ import { FetchType, FunctionStatus, OfficeSortArgs, Roles } from "../enums";
 import { IOffice } from "../interfaces";
 import { Attendance, Office, User } from "../models"
 import { InsertOfficeArgs, Location, OfficeFetchResult, officeQuery, UpdateOfficeArgs, OfficeWithUserData, LocationWithRadius } from "../types";
-import { logFunctionInfo, logger } from "../utils";
+import { logFunctionInfo } from "../utils";
 import { updateUserById } from "./user.service";
 import { errorMessage } from "../constants";
 

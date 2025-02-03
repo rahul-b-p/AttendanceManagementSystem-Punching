@@ -1,6 +1,5 @@
 import { PermissionLevel } from "../enums";
 import { ICustomRole } from "../interfaces";
-import { roleAuth } from "../middlewares";
 import { PageInfo } from "./page.type";
 
 export type InsertRoleArgs = {

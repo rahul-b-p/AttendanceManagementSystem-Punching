@@ -1,9 +1,9 @@
-import { startSession, Types } from "mongoose";
+import { startSession } from "mongoose";
 import { FunctionStatus, Roles, UserSortArgs } from "../enums";
 import { IUser } from "../interfaces";
 import { Attendance, User } from "../models";
 import { IUserData, UserFetchResult, UserInsertArgs, userQuery, UserToShow, UserUpdateArgs } from "../types";
-import { logFunctionInfo, logger } from "../utils";
+import { logFunctionInfo } from "../utils";
 import { setUserToOfficeById } from "./office.service";
 
 

@@ -1,6 +1,6 @@
 import { FunctionStatus, Roles } from "../enums"
 import { findCustomRole } from "../services"
-import { logFunctionInfo, logger } from "../utils";
+import { logFunctionInfo } from "../utils";
 
 
 

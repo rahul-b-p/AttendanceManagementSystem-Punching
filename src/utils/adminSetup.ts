@@ -5,7 +5,7 @@ import { createUserSchema } from "../schemas";
 import { checkAdminExists, insertUser, validateEmailUniqueness } from "../services";
 import { UserInsertArgs } from "../types";
 import { checkEmailValidity } from "../validators";
-import { logFunctionInfo, logger } from "./logger";
+import { logFunctionInfo } from "./logger";
 
 /**
  * Creates a default admin using system admin credentials from the environment variables, if no admin exists in the system.
