@@ -66,8 +66,8 @@ export const getDayRange = (isoDateString: string): DateRange => {
  */
 export const getDateRange = (rangeStartDate: string, rangeEndDate: string): DateRange => {
 
-    const startDate = moment(rangeStartDate);
-    const endDate = moment(rangeEndDate);
+    const startDate = moment(rangeStartDate).startOf('day');
+    const endDate = moment(rangeEndDate).endOf('day');
 
     if (!startDate.isValid() || !endDate.isValid()) {
         throw new Error(errorMessage.INVALID_DATE_FORMAT);
