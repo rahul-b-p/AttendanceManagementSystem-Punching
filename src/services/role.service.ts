@@ -14,7 +14,7 @@ export const findCustomRole = async (role: string): Promise<ICustomRole | null> 
     logFunctionInfo(functionName, FunctionStatus.start);
     try {
         const customRole = await CustomRole.findOne({ role });
-        logFunctionInfo(functionName, FunctionStatus.start);
+        logFunctionInfo(functionName, FunctionStatus.success);
         return customRole;
     } catch (error: any) {
         logFunctionInfo(functionName, FunctionStatus.fail);
