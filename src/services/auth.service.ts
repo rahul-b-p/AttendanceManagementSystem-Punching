@@ -6,7 +6,9 @@ import { hashPassword, logFunctionInfo } from "../utils";
 import { updateUserById } from "./user.service";
 
 
-
+/**
+ * To sign tokens, and save refresh token
+ */
 export const signNewTokens = async (userData: IUser): Promise<TokenResonse> => {
     const functionName = signNewTokens.name;
     logFunctionInfo(functionName, FunctionStatus.start);
@@ -30,7 +32,9 @@ export const signNewTokens = async (userData: IUser): Promise<TokenResonse> => {
     }
 }
 
-
+/**
+ * to sign tokens with verifying account and saving the password
+ */
 export const verfyAccountAndSignNewTokens = async (userData: IUser, confirmPassword: string): Promise<TokenResonse> => {
     const functionName = verfyAccountAndSignNewTokens.name;
     logFunctionInfo(functionName, FunctionStatus.start);

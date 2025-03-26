@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { HASH_SALT_ROUNDS } from '../config';
-import { logFunctionInfo, logger } from './logger';
+import { logFunctionInfo } from './logger';
 import { FunctionStatus } from '../enums';
 
 
@@ -26,7 +26,6 @@ export const hashPassword = async (password: string): Promise<string> => {
 /**
  * Compares a plain text password with a hashed password to check if they match.
  */
-
 export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
 
     const functionName = 'comparePassword'

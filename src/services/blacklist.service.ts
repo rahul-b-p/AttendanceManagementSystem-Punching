@@ -8,7 +8,6 @@ import jwt from 'jsonwebtoken';
 /**
  * Checks the given token is blacklisted or not
  */
-
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
     const functionName = 'isTokenBlacklisted';
     logFunctionInfo(functionName, FunctionStatus.start);

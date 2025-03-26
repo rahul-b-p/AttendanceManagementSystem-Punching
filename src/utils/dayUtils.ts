@@ -1,5 +1,4 @@
 import { Days } from "../enums";
-import { logger } from "./logger";
 
 
 /**

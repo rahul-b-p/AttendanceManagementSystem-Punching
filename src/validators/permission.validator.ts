@@ -18,21 +18,20 @@ export const permissionValidator = async (permissionSet: CustomRolePermission[],
 
         for (let permission of customRole.permission) {
 
-            if (permission.action !== requiredAction) {
-                return false;
-            }
+            if (permission.action == requiredAction) {
 
-            for (let allwedPermission of permissionSet) {
+                for (let allwedPermission of permissionSet) {
 
-                if (permission.action == allwedPermission.action) {
+                    if (permission.action == allwedPermission.action) {
 
-                    for (let level of permission.level) {
+                        for (let level of permission.level) {
 
-                        if (allwedPermission.level.includes(level)) {
+                            if (allwedPermission.level.includes(level)) {
 
-                            logFunctionInfo(functionName, FunctionStatus.success);
-                            return true;
+                                logFunctionInfo(functionName, FunctionStatus.success);
+                                return true;
 
+                            }
                         }
                     }
                 }
